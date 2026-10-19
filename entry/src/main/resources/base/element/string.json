@@ -1,0 +1,15 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "HelloCarRental 鸿蒙应用" },
+    { "name": "EntryAbility_desc", "value": "汽车租赁应用主入口" },
+    { "name": "EntryAbility_label", "value": "HelloCarRental" },
+    { "name": "app_name", "value": "Hello 租车" },
+    { "name": "tab_home", "value": "首页" },
+    { "name": "tab_order", "value": "订单" },
+    { "name": "tab_chat", "value": "客服" },
+    { "name": "tab_mine", "value": "我的" },
+    { "name": "btn_confirm", "value": "确认" },
+    { "name": "btn_cancel", "value": "取消" },
+    { "name": "btn_primary", "value": "立即预订" }
+  ]
+}

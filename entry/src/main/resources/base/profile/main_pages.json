@@ -1,0 +1,22 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/CarFilter",
+    "pages/OrderConfirm",
+    "pages/Payment",
+    "pages/PaymentSuccess",
+    "pages/PickupVoucher",
+    "pages/MyOrders",
+    "pages/OrderDetail",
+    "pages/Login",
+    "pages/Register",
+    "pages/VerifyAuth",
+    "pages/StoreQuery",
+    "pages/AIChat",
+    "pages/PersonalCenter",
+    "pages/InUse",
+    "pages/ReturnConfirm",
+    "pages/FeeSettlement",
+    "pages/Violation"
+  ]
+}

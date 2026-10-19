@@ -1,0 +1,17 @@
+{
+  "float": [
+    { "name": "page_text_font_size", "value": "50fp" },
+    { "name": "font_size_title", "value": "17fp" },
+    { "name": "font_size_subtitle", "value": "16fp" },
+    { "name": "font_size_body", "value": "14fp" },
+    { "name": "font_size_caption", "value": "12fp" },
+    { "name": "font_size_small", "value": "11fp" },
+    { "name": "font_size_price", "value": "20fp" },
+    { "name": "nav_bar_height", "value": "44vp" },
+    { "name": "tab_bar_height", "value": "56vp" },
+    { "name": "status_bar_height", "value": "24vp" },
+    { "name": "card_radius", "value": "12vp" },
+    { "name": "btn_radius", "value": "24vp" },
+    { "name": "page_padding", "value": "16vp" }
+  ]
+}

@@ -1,0 +1,249 @@
+import { CarInfo, StoreInfo, OrderInfo, OrderStatus, Coupon, UserInfo, PaymentMethod, ChatMessage, ViolationRecord } from './Interfaces';
+
+/**
+ * Mock 数据 - 全部使用本地静态数据，不需要后端
+ */
+
+// 车辆列表 - 首页展示
+export const mockCarList: CarInfo[] = [
+  {
+    id: 'car001',
+    name: '宝马 3系 325Li',
+    brand: '宝马',
+    imageUrl: '🚗',
+    pricePerDay: 298,
+    originalPrice: 358,
+    seats: 5,
+    transmission: '自动',
+    fuelType: '汽油',
+    displacement: '2.0T',
+    inventory: 2,
+    features: ['真皮座椅', '倒车影像', '定速巡航'],
+    rating: 4.9,
+    orderCount: 1280
+  },
+  {
+    id: 'car002',
+    name: '丰田凯美瑞 2.5G',
+    brand: '丰田',
+    imageUrl: '🚙',
+    pricePerDay: 198,
+    originalPrice: 238,
+    seats: 5,
+    transmission: '自动',
+    fuelType: '汽油',
+    displacement: '2.5L',
+    inventory: 5,
+    features: ['省油耐造', '空间宽敞', '舒适静音'],
+    rating: 4.8,
+    orderCount: 2150
+  },
+  {
+    id: 'car003',
+    name: '大众帕萨特 380TSI',
+    brand: '大众',
+    imageUrl: '🚘',
+    pricePerDay: 228,
+    seats: 5,
+    transmission: '自动',
+    fuelType: '汽油',
+    displacement: '2.0T',
+    inventory: 3,
+    features: ['商务首选', '动力充沛'],
+    rating: 4.7,
+    orderCount: 960
+  },
+  {
+    id: 'car004',
+    name: '别克GL8 ES 豪华型',
+    brand: '别克',
+    imageUrl: '🚐',
+    pricePerDay: 388,
+    seats: 7,
+    transmission: '自动',
+    fuelType: '汽油',
+    displacement: '2.0T',
+    inventory: 1,
+    features: ['7座MPV', '商务出行', '电动滑门'],
+    rating: 4.9,
+    orderCount: 580
+  },
+  {
+    id: 'car005',
+    name: '特斯拉 Model 3',
+    brand: '特斯拉',
+    imageUrl: '⚡',
+    pricePerDay: 328,
+    originalPrice: 398,
+    seats: 5,
+    transmission: '自动',
+    fuelType: '纯电动',
+    displacement: '-',
+    inventory: 4,
+    features: ['自动驾驶', '大屏中控', '零排放'],
+    rating: 4.8,
+    orderCount: 1420
+  },
+  {
+    id: 'car006',
+    name: '奔驰C级 C260L',
+    brand: '奔驰',
+    imageUrl: '🏎️',
+    pricePerDay: 458,
+    seats: 5,
+    transmission: '自动',
+    fuelType: '汽油',
+    displacement: '1.5T',
+    inventory: 2,
+    features: ['豪华品牌', '内饰精致'],
+    rating: 4.9,
+    orderCount: 720
+  }
+];
+
+// 门店列表
+export const mockStoreList: StoreInfo[] = [
+  {
+    id: 'store001',
+    name: '浦东机场 T2 航站楼店',
+    address: '上海市浦东新区浦东机场T2航站楼出发层',
+    distance: '1.2km',
+    phone: '021-12345678',
+    hours: '24小时营业',
+    hasPickup: true
+  },
+  {
+    id: 'store002',
+    name: '虹桥机场 T2 航站楼店',
+    address: '上海市长宁区虹桥机场T2航站楼一层',
+    distance: '8.5km',
+    phone: '021-23456789',
+    hours: '06:00-24:00',
+    hasPickup: true
+  },
+  {
+    id: 'store003',
+    name: '人民广场步行街店',
+    address: '上海市黄浦区南京东路100号',
+    distance: '3.2km',
+    phone: '021-34567890',
+    hours: '08:00-22:00',
+    hasPickup: false
+  },
+  {
+    id: 'store004',
+    name: '陆家嘴金融中心店',
+    address: '上海市浦东新区陆家嘴环路200号',
+    distance: '5.1km',
+    phone: '021-45678901',
+    hours: '08:00-22:00',
+    hasPickup: true
+  }
+];
+
+// 订单列表
+export const mockOrderList: OrderInfo[] = [
+  {
+    id: 'order000',
+    orderNo: 'HC2026101900000',
+    carName: '宝马 3系 325Li',
+    carImage: '🚗',
+    pickupStore: '浦东机场 T2 航站楼店',
+    returnStore: '浦东机场 T2 航站楼店',
+    pickupTime: '2026-10-19 10:00',
+    returnTime: '2026-10-22 10:00',
+    days: 3,
+    totalPrice: 894,
+    status: OrderStatus.IN_USE,
+    createTime: '2026-10-18 14:30',
+    discount: 50,
+    insurance: 30
+  },
+  {
+    id: 'order001',
+    orderNo: 'HC2026101500001',
+    carName: '宝马 3系 325Li',
+    carImage: '🚗',
+    pickupStore: '浦东机场 T2 航站楼店',
+    returnStore: '浦东机场 T2 航站楼店',
+    pickupTime: '2026-10-20 10:00',
+    returnTime: '2026-10-23 10:00',
+    days: 3,
+    totalPrice: 894,
+    status: OrderStatus.CONFIRMED,
+    createTime: '2026-10-15 14:30',
+    discount: 50,
+    insurance: 30
+  },
+  {
+    id: 'order002',
+    orderNo: 'HC2026101000002',
+    carName: '丰田凯美瑞 2.5G',
+    carImage: '🚙',
+    pickupStore: '人民广场步行街店',
+    returnStore: '虹桥机场 T2 航站楼店',
+    pickupTime: '2026-10-12 09:00',
+    returnTime: '2026-10-14 18:00',
+    days: 2,
+    totalPrice: 436,
+    status: OrderStatus.COMPLETED,
+    createTime: '2026-10-10 16:20',
+    discount: 30
+  },
+  {
+    id: 'order003',
+    orderNo: 'HC2026100500003',
+    carName: '特斯拉 Model 3',
+    carImage: '⚡',
+    pickupStore: '陆家嘴金融中心店',
+    returnStore: '陆家嘴金融中心店',
+    pickupTime: '2026-10-06 14:00',
+    returnTime: '2026-10-09 14:00',
+    days: 3,
+    totalPrice: 984,
+    status: OrderStatus.COMPLETED,
+    createTime: '2026-10-05 10:15'
+  }
+];
+
+// 优惠券列表
+export const mockCouponList: Coupon[] = [
+  { id: 'cp001', name: '新用户立减券', discount: 50, threshold: 300, expireDate: '2026-12-31', used: false },
+  { id: 'cp002', name: '周末出行优惠', discount: 100, threshold: 500, expireDate: '2026-11-30', used: false },
+  { id: 'cp003', name: '长租专享券', discount: 200, threshold: 1000, expireDate: '2026-12-15', used: false }
+];
+
+// 用户信息
+export const mockUserInfo: UserInfo = {
+  id: 'user001',
+  name: '张三',
+  phone: '138****8888',
+  avatar: '👤',
+  memberLevel: '黄金会员',
+  memberExpire: '2027-12-31',
+  points: 2680,
+  verified: true
+};
+
+// 支付方式
+export const mockPaymentMethods: PaymentMethod[] = [
+  { id: 'pay001', name: '招商银行', type: 'bankcard', cardNo: '尾号 6688', isDefault: true },
+  { id: 'pay002', name: '微信支付', type: 'wechat', isDefault: false },
+  { id: 'pay003', name: '支付宝', type: 'alipay', isDefault: false }
+];
+
+// AI 客服对话
+export const mockChatMessages: ChatMessage[] = [
+  { id: 'msg001', content: '您好！我是 Hello 租车智能小助手，很高兴为您服务😊', isUser: false, time: '09:00' },
+  { id: 'msg002', content: '我想了解一下取车流程', isUser: true, time: '09:01' },
+  { id: 'msg003', content: '好的！取车流程如下：\n1. 到达门店后出示身份证和驾驶证\n2. 工作人员会为您核验信息并签署合同\n3. 确认车辆外观无损伤后即可提车\n4. 押金将在还车后原路退还', isUser: false, time: '09:01' },
+  { id: 'msg004', content: '我可以提前取车吗？', isUser: true, time: '09:02' },
+  { id: 'msg005', content: '提前取车需要联系门店工作人员确认哦，不同门店政策可能不同。建议您提前拨打门店电话咨询～', isUser: false, time: '09:02' }
+];
+
+// 违章记录
+export const mockViolationList: ViolationRecord[] = [
+  { id: 'v001', time: '2026-08-15 14:30', location: '浦东新区世纪大道', reason: '违反禁止标线指示', points: 3, fine: 200, status: '待处理' },
+  { id: 'v002', time: '2026-07-20 09:15', location: '徐汇区沪闵高架', reason: '超速10%-20%', points: 3, fine: 150, status: '已处理' },
+  { id: 'v003', time: '2026-06-10 18:45', location: '黄浦区延安高架', reason: '不系安全带', points: 1, fine: 50, status: '已处理' }
+];
