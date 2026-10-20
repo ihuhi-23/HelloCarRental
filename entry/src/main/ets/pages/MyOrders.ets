@@ -1,23 +1,38 @@
 ﻿import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { NavBar } from '../common/NavBar';
 import { TabBar } from '../common/TabBar';
-import { mockOrderList } from '../common/MockData';
 import { OrderInfo, OrderStatus } from '../common/Interfaces';
+import { fetchOrders } from '../common/HttpUtil';
 
 /**
  * 页面 7：我的订单
  * 【复杂页面】
+ * 数据来源：后端 /api/orders
  */
 @Entry
 @Component
 struct MyOrders {
   @State currentTab: number = 1;
   @State currentStatusIndex: number = 0;
+  @State orders: OrderInfo[] = [];
 
   private statusTabs: string[] = ['全部', '待支付', '已确认', '用车中', '已完成'];
 
+  aboutToAppear() {
+    this.loadOrders();
+  }
+
+  private async loadOrders() {
+    try {
+      this.orders = await fetchOrders();
+    } catch (e) {
+      console.error('Load orders failed');
+    }
+  }
+
   private getFilteredOrders(): OrderInfo[] {
-    if (this.currentStatusIndex === 0) return mockOrderList;
+    if (this.currentStatusIndex === 0) return this.orders;
     const statusMap: Record<number, OrderStatus[]> = {
       1: [OrderStatus.PENDING],
       2: [OrderStatus.CONFIRMED],
@@ -25,14 +40,16 @@ struct MyOrders {
       4: [OrderStatus.COMPLETED]
     };
     const target = statusMap[this.currentStatusIndex] || [];
-    return mockOrderList.filter((o: OrderInfo) => target.indexOf(o.status) >= 0);
+    return this.orders.filter((o: OrderInfo) => target.indexOf(o.status) >= 0);
   }
 
   private goDetail(order: OrderInfo) {
     if (order.status === OrderStatus.IN_USE || order.status === OrderStatus.PICKED_UP) {
-      router.pushUrl({ url: 'pages/InUse' });
+      router.pushUrl({ url: 'pages/InUse', params: { orderId: order.id } })
+        .catch((err: Error) => { promptAction.showToast({ message: '跳转失败: ' + err.message, duration: 2000 }); });
     } else {
-      router.pushUrl({ url: 'pages/OrderDetail?orderId=' + order.id });
+      router.pushUrl({ url: 'pages/OrderDetail', params: { orderId: order.id } })
+        .catch((err: Error) => { promptAction.showToast({ message: '跳转失败: ' + err.message, duration: 2000 }); });
     }
   }
 
@@ -68,25 +85,24 @@ struct MyOrders {
       }
       .width('100%').backgroundColor(Color.White)
 
-      // ===== List 列表组件（循环渲染容器 #3）=====
-      List() {
-        if (this.getFilteredOrders().length === 0) {
-          ListItem() {
+      // ===== Scroll + ForEach 列表（避免 List 手势冲突）=====
+      Scroll() {
+        Column() {
+          if (this.getFilteredOrders().length === 0) {
             Column() {
               Text('📋').fontSize(60)
               Text('暂无订单').fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_secondary')).margin({ top: 12 })
             }
             .width('100%').height(300).justifyContent(FlexAlign.Center)
-          }
-        } else {
-          ForEach(this.getFilteredOrders(), (order: OrderInfo) => {
-            ListItem() {
+          } else {
+            ForEach(this.getFilteredOrders(), (order: OrderInfo) => {
               this.OrderCard(order)
-            }
-          }, (order: OrderInfo) => order.id)
+            }, (order: OrderInfo) => order.id)
+          }
         }
+        .padding({ left: 16, right: 16 })
       }
-      .width('100%').layoutWeight(1).scrollBar(BarState.Off).padding({ left: 16, right: 16 })
+      .width('100%').layoutWeight(1).scrollBar(BarState.Off)
 
       TabBar({ currentIndex: this.currentTab, onTabChange: (i: number): void => this.switchTab(i) })
     }
@@ -103,7 +119,7 @@ struct MyOrders {
       }.width('100%')
       Divider().color($r('app.color.divider')).margin({ top: 12, bottom: 12 })
       Row() {
-        Text(order.carImage).fontSize(40).width(64).height(64).textAlign(TextAlign.Center).backgroundColor($r('app.color.bg_page')).borderRadius(10)
+        Image(order.carImage).width(64).height(64).objectFit(ImageFit.Cover).borderRadius(10)
         Column() {
           Text(order.carName).fontSize($r('app.float.font_size_subtitle')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
           Text(order.pickupStore + ' → ' + order.returnStore).fontSize($r('app.float.font_size_caption')).fontColor($r('app.color.text_secondary')).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).margin({ top: 4 })

@@ -1,10 +1,12 @@
 ﻿import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
+import { SwiperBanner } from '../common/SwiperBanner';
 import { mockViolationList } from '../common/MockData';
 import { ViolationRecord } from '../common/Interfaces';
 
 /**
  * 页面 18：违章查询
+ * 注意：后端暂无违章查询 API，当前使用 Mock 数据（mockViolationList）
  */
 @Entry
 @Component
@@ -12,6 +14,8 @@ struct Violation {
   build() {
     Column() {
       NavBar({ title: '违章查询', onBack: (): void => { router.back(); }, rightText: '', onRightClick: (): void => {} })
+
+      SwiperBanner()
 
       Scroll() {
         Column() {

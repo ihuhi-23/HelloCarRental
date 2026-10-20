@@ -25,7 +25,7 @@
       "id": "car002",
       "name": "丰田凯美瑞 2.5G",
       "brand": "丰田",
-      "imageUrl": "🚙",
+      "imageUrl": "https://img1.xcarimg.com/b166/s15792/2000_1500_20230420164232892327304977859.jpg",
       "pricePerDay": 198,
       "originalPrice": 238,
       "seats": 5,
@@ -39,13 +39,14 @@
         "舒适静音"
       ],
       "rating": 4.8,
-      "orderCount": 2150
+      "orderCount": 2150,
+      "featuresStr": "省油耐造,空间宽敞,舒适静音"
     },
     {
       "id": "car003",
       "name": "大众帕萨特 380TSI",
       "brand": "大众",
-      "imageUrl": "🚘",
+      "imageUrl": "https://img3.bitautoimg.com/autoalbum/files/20210916/683/202109161202.JPG",
       "pricePerDay": 228,
       "seats": 5,
       "transmission": "自动",
@@ -57,13 +58,15 @@
         "动力充沛"
       ],
       "rating": 4.7,
-      "orderCount": 960
+      "orderCount": 960,
+      "originalPrice": 238,
+      "featuresStr": "商务首选,动力充沛"
     },
     {
       "id": "car004",
       "name": "别克GL8 ES 豪华型",
       "brand": "别克",
-      "imageUrl": "🚐",
+      "imageUrl": "https://img.pcauto.com.cn/images/upload/upc/tx/auto5/2211/07/c0/340656290_1667785907238_1024.jpg",
       "pricePerDay": 388,
       "seats": 7,
       "transmission": "自动",
@@ -76,13 +79,15 @@
         "电动滑门"
       ],
       "rating": 4.9,
-      "orderCount": 580
+      "orderCount": 580,
+      "originalPrice": 238,
+      "featuresStr": "7座MPV,商务出行,电动滑门"
     },
     {
       "id": "car005",
       "name": "特斯拉 Model 3",
       "brand": "特斯拉",
-      "imageUrl": "⚡",
+      "imageUrl": "https://ts1.tc.mm.bing.net/th/id/R-C.e60e2ca018be3dd57b32e7dfea8b87a4?rik=9biMuEUEnMviCg&riu=http%3a%2f%2fn.sinaimg.cn%2fsinacn20115%2f600%2fw1920h1080%2f20190103%2fe1d0-hqzxptp1135831.jpg&ehk=wXTsR19pzZsh8cg47A9x7c1iHNpjVxStZh%2be2zg179A%3d&risl=&pid=ImgRaw&r=0",
       "pricePerDay": 328,
       "originalPrice": 398,
       "seats": 5,
@@ -96,13 +101,14 @@
         "零排放"
       ],
       "rating": 4.8,
-      "orderCount": 1420
+      "orderCount": 1420,
+      "featuresStr": "自动驾驶,大屏中控,零排放"
     },
     {
       "id": "car006",
       "name": "奔驰C级 C260L",
       "brand": "奔驰",
-      "imageUrl": "🏎️",
+      "imageUrl": "https://img.pcauto.com.cn/images/upload/upc/tx/auto5/2108/26/c10/275773173_1629967518523.jpg",
       "pricePerDay": 458,
       "seats": 5,
       "transmission": "自动",
@@ -114,7 +120,9 @@
         "内饰精致"
       ],
       "rating": 4.9,
-      "orderCount": 720
+      "orderCount": 720,
+      "originalPrice": 398,
+      "featuresStr": "豪华品牌,内饰精致"
     }
   ],
   "stores": [
@@ -122,6 +130,9 @@
       "id": "store001",
       "name": "浦东机场 T2 航站楼店",
       "address": "上海市浦东新区浦东机场T2航站楼出发层",
+      "lng": 121.806102,
+      "lat": 31.151386,
+      "city": "上海市",
       "distance": "1.2km",
       "phone": "021-12345678",
       "hours": "24小时营业",
@@ -131,6 +142,9 @@
       "id": "store002",
       "name": "虹桥机场 T2 航站楼店",
       "address": "上海市长宁区虹桥机场T2航站楼一层",
+      "lng": 121.346783,
+      "lat": 31.194643,
+      "city": "上海市",
       "distance": "8.5km",
       "phone": "021-23456789",
       "hours": "06:00-24:00",
@@ -140,6 +154,9 @@
       "id": "store003",
       "name": "人民广场步行街店",
       "address": "上海市黄浦区南京东路100号",
+      "lng": 121.447348,
+      "lat": 31.227718,
+      "city": "上海市",
       "distance": "3.2km",
       "phone": "021-34567890",
       "hours": "08:00-22:00",
@@ -149,6 +166,9 @@
       "id": "store004",
       "name": "陆家嘴金融中心店",
       "address": "上海市浦东新区陆家嘴环路200号",
+      "lng": 121.499848,
+      "lat": 31.236234,
+      "city": "上海市",
       "distance": "5.1km",
       "phone": "021-45678901",
       "hours": "08:00-22:00",
@@ -158,6 +178,9 @@
       "id": "store005",
       "name": "南宁学院",
       "address": "龙亭路8号",
+      "lng": 108.453111,
+      "lat": 22.750368,
+      "city": "南宁市",
       "distance": "",
       "phone": "13838383388",
       "hours": "7:00-23:00",
@@ -176,7 +199,7 @@
       "returnTime": "2026-10-22 10:00",
       "days": 3,
       "totalPrice": 894,
-      "status": "IN_USE",
+      "status": "CONFIRMED",
       "createTime": "2026-10-18 14:30",
       "discount": 50,
       "insurance": 30
@@ -192,7 +215,7 @@
       "returnTime": "2026-10-23 10:00",
       "days": 3,
       "totalPrice": 894,
-      "status": "CONFIRMED",
+      "status": "IN_USE",
       "createTime": "2026-10-15 14:30",
       "discount": 50,
       "insurance": 30
@@ -237,6 +260,48 @@
     "points": 2680,
     "verified": true
   },
+  "banners": [
+    {
+      "id": "banner001",
+      "imageUrl": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=300&fit=crop",
+      "title": "国庆特惠 · 租车立减 200 元",
+      "link": "",
+      "sort": 3,
+      "enabled": true
+    },
+    {
+      "id": "banner002",
+      "imageUrl": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=300&fit=crop",
+      "title": "新用户首单 8 折优惠",
+      "link": "",
+      "sort": 5,
+      "enabled": true
+    },
+    {
+      "id": "banner003",
+      "imageUrl": "https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&h=300&fit=crop",
+      "title": "电动车出行 · 环保又省钱",
+      "link": "",
+      "sort": 4,
+      "enabled": true
+    },
+    {
+      "id": "banner403047",
+      "imageUrl": "/uploads/car_1792491391768_4817.png",
+      "title": "转转二手",
+      "link": "",
+      "sort": 1,
+      "enabled": true
+    },
+    {
+      "id": "banner430338",
+      "imageUrl": "/uploads/car_1792491428949_4338.png",
+      "title": "转转二手",
+      "link": "",
+      "sort": 2,
+      "enabled": true
+    }
+  ],
   "coupons": [
     {
       "id": "cp001",

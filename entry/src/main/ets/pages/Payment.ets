@@ -5,6 +5,7 @@ import { PaymentMethod } from '../common/Interfaces';
 
 /**
  * 页面 4：支付方式（收银台）
+ * 注意：后端暂无支付方式 API，当前使用 Mock 数据（mockPaymentMethods）
  */
 @Entry
 @Component

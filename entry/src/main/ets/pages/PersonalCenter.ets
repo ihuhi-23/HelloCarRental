@@ -1,17 +1,30 @@
 ﻿import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
 import { TabBar } from '../common/TabBar';
-import { mockUserInfo } from '../common/MockData';
 import { UserInfo } from '../common/Interfaces';
+import { fetchUser } from '../common/HttpUtil';
 
 /**
  * 页面 14：个人中心
+ * 数据来源：后端 /api/user
  */
 @Entry
 @Component
 struct PersonalCenter {
   @State currentTab: number = 3;
-  @State userInfo: UserInfo = mockUserInfo;
+  @State userInfo: UserInfo | null = null;
+
+  aboutToAppear() {
+    this.loadUser();
+  }
+
+  private async loadUser() {
+    try {
+      this.userInfo = await fetchUser();
+    } catch (e) {
+      console.error('Load user failed');
+    }
+  }
 
   private switchTab(index: number) {
     this.currentTab = index;
@@ -24,23 +37,25 @@ struct PersonalCenter {
   build() {
     Column() {
       Column() {
-        Row() {
-          Text(this.userInfo.avatar).fontSize(48).width(64).height(64).textAlign(TextAlign.Center).backgroundColor(Color.White).borderRadius(32)
-          Column() {
-            Row() {
-              Text(this.userInfo.name).fontSize(20).fontWeight(FontWeight.Bold).fontColor(Color.White)
-              Text(this.userInfo.memberLevel).fontSize(10).fontColor($r('app.color.primary_orange')).backgroundColor(Color.White).padding({ left: 6, right: 6, top: 2, bottom: 2 }).borderRadius(4).margin({ left: 8 })
-            }
-            Text(this.userInfo.phone).fontSize($r('app.float.font_size_caption')).fontColor('#CCFFFFFF').margin({ top: 4 })
-            Row() {
-              if (this.userInfo.verified) {
-                Text('✓ 已实名').fontSize(10).fontColor($r('app.color.success_green')).backgroundColor('#33FFFFFF').padding({ left: 6, right: 6, top: 2, bottom: 2 }).borderRadius(4)
+        if (this.userInfo) {
+          Row() {
+            Text(this.userInfo.avatar).fontSize(48).width(64).height(64).textAlign(TextAlign.Center).backgroundColor(Color.White).borderRadius(32)
+            Column() {
+              Row() {
+                Text(this.userInfo.name).fontSize(20).fontWeight(FontWeight.Bold).fontColor(Color.White)
+                Text(this.userInfo.memberLevel).fontSize(10).fontColor($r('app.color.primary_orange')).backgroundColor(Color.White).padding({ left: 6, right: 6, top: 2, bottom: 2 }).borderRadius(4).margin({ left: 8 })
               }
-              Text('积分 ' + this.userInfo.points).fontSize(10).fontColor('#CCFFFFFF').margin({ left: 12 })
-            }.margin({ top: 6 })
-          }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 16 })
-          Text('›').fontSize(20).fontColor('#99FFFFFF')
-        }.width('100%')
+              Text(this.userInfo.phone).fontSize($r('app.float.font_size_caption')).fontColor('#CCFFFFFF').margin({ top: 4 })
+              Row() {
+                if (this.userInfo.verified) {
+                  Text('✓ 已实名').fontSize(10).fontColor($r('app.color.success_green')).backgroundColor('#33FFFFFF').padding({ left: 6, right: 6, top: 2, bottom: 2 }).borderRadius(4)
+                }
+                Text('积分 ' + this.userInfo.points).fontSize(10).fontColor('#CCFFFFFF').margin({ left: 12 })
+              }.margin({ top: 6 })
+            }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 16 })
+            Text('›').fontSize(20).fontColor('#99FFFFFF')
+          }.width('100%')
+        }
       }
       .width('100%').padding(20)
       .linearGradient({ angle: 180, colors: [['#FF6B00', 0], ['#FF8F3D', 1]] })
@@ -64,11 +79,11 @@ struct PersonalCenter {
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
           Column() {
-            this.MenuRow('🎟️', '优惠券', '3张可用', (): void => {})
+            this.MenuRow('🎟️', '优惠券', '查看', (): void => {})
             this.MenuRow('🪪', '我的驾照', '', (): void => this.goPage('pages/VerifyAuth'))
             this.MenuRow('📍', '门店查询', '', (): void => this.goPage('pages/StoreQuery'))
             this.MenuRow('🚨', '违章查询', '', (): void => this.goPage('pages/Violation'))
-            this.MenuRow('💳', '支付方式', '', (): void => {})
+            this.MenuRow('💳', '支付方式', '', (): void => this.goPage('pages/Payment'))
             this.MenuRow('🎁', '邀请有礼', '得¥100券', (): void => {})
           }
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })

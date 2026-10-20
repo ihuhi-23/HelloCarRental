@@ -1,5 +1,6 @@
 ﻿import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
+import { SwiperBanner } from '../common/SwiperBanner';
 
 /**
  * 页面 11：实名认证
@@ -16,6 +17,8 @@ struct VerifyAuth {
   build() {
     Column() {
       NavBar({ title: '实名认证', onBack: (): void => { router.back(); }, rightText: '', onRightClick: (): void => {} })
+
+      SwiperBanner()
 
       Scroll() {
         Column() {

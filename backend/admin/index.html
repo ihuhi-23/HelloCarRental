@@ -151,6 +151,33 @@
 
     /* 车辆图片占位 */
     .car-emoji { font-size: 28px; }
+
+    /* ===== 图片预览层级修复 =====
+       el-image 的预览层默认挂载在表格单元格内部，会被表格/弹窗的层叠上下文裁剪、遮挡，
+       这里强制提升到最顶层，保证预览图与遮罩始终盖住页面和弹窗。 */
+    .el-image-viewer__wrapper {
+      z-index: 3000 !important;
+      position: fixed !important;
+      inset: 0 !important;
+    }
+    /* 工具栏 / 关闭 / 左右翻页按钮必须高于画布，保证可点击 */
+    .el-image-viewer__wrapper > .el-image-viewer__actions,
+    .el-image-viewer__wrapper > .el-image-viewer__close,
+    .el-image-viewer__wrapper > .el-image-viewer__btn,
+    .el-image-viewer__wrapper > .el-image-viewer__prev,
+    .el-image-viewer__wrapper > .el-image-viewer__next {
+      z-index: 10 !important;
+      pointer-events: auto;
+    }
+    /* 大图按视口留白缩放，避免宽幅 Banner 顶满屏幕 */
+    body .el-image-viewer__wrapper .el-image-viewer__canvas .el-image-viewer__img {
+      max-width: 88vw !important;
+      max-height: 86vh !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      border-radius: 6px;
+    }
+    /* 表格内的缩略图不要被单元格裁剪，留出缩放光标的点击热区 */
+    .el-table .el-image { display: inline-flex; }
   </style>
 </head>
 <body>
@@ -191,6 +218,18 @@
         <el-menu-item index="coupons">
           <el-icon><Ticket /></el-icon>
           <span>优惠券管理</span>
+        </el-menu-item>
+        <el-menu-item index="banners">
+          <el-icon><Picture /></el-icon>
+          <span>Banner 轮播图</span>
+        </el-menu-item>
+        <el-menu-item index="ai">
+          <el-icon><Service /></el-icon>
+          <span>AI 客服设置</span>
+        </el-menu-item>
+        <el-menu-item index="map">
+          <el-icon><Location /></el-icon>
+          <span>🗺️ 地图配置</span>
         </el-menu-item>
       </el-menu>
     </div>
@@ -492,6 +531,181 @@
           </div>
         </div>
 
+        <!-- ============ Banner 轮播图管理 ============ -->
+        <div v-if="activeMenu === 'banners'">
+          <div class="panel">
+            <div class="toolbar">
+              <div></div>
+              <div>
+                <el-button type="primary" @click="openBannerDialog()">
+                  <el-icon><Plus /></el-icon> 新增 Banner
+                </el-button>
+              </div>
+            </div>
+            <el-table :data="banners" stripe border style="width: 100%">
+              <el-table-column prop="id" label="ID" width="110"></el-table-column>
+              <el-table-column label="图片预览" width="180">
+                <template #default="{ row }">
+                  <el-image
+                    :src="row.imageUrl"
+                    style="width:160px;height:60px;cursor:zoom-in;"
+                    fit="cover"
+                    :preview-src-list="[row.imageUrl]"
+                    :initial-index="0"
+                    preview-teleported
+                    hide-on-click-modal></el-image>
+                </template>
+              </el-table-column>
+              <el-table-column prop="title" label="标题"></el-table-column>
+              <el-table-column prop="sort" label="排序" width="80"></el-table-column>
+              <el-table-column label="启用" width="80">
+                <template #default="{ row }">
+                  <el-switch v-model="row.enabled" @change="toggleBanner(row)"></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="160" fixed="right">
+                <template #default="{ row }">
+                  <el-button size="small" @click="openBannerDialog(row)">编辑</el-button>
+                  <el-button type="danger" size="small" @click="deleteBanner(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- ============ AI 客服设置 ============ -->
+        <div v-if="activeMenu === 'ai'">
+          <div class="panel">
+            <h3 style="margin-bottom:16px;color:#303133;">🤖 AI 客服配置（DeepSeek）</h3>
+            <el-alert
+              v-if="aiConfig.hasKey"
+              title="AI Key 已配置"
+              :description="'当前 Key: ' + aiConfig.maskedKey"
+              type="success"
+              :closable="false"
+              show-icon
+              style="margin-bottom:20px;">
+            </el-alert>
+            <el-alert
+              v-else
+              title="AI Key 未配置"
+              description="请在下方输入 DeepSeek API Key 后保存，C 端 AI 客服即可正常工作"
+              type="warning"
+              :closable="false"
+              show-icon
+              style="margin-bottom:20px;">
+            </el-alert>
+
+            <el-form :model="aiForm" label-width="140px" label-position="right" style="max-width:680px;">
+              <el-form-item label="API Key">
+                <el-input
+                  v-model="aiForm.apiKey"
+                  type="password"
+                  show-password
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+                  autocomplete="off">
+                  <template #append>
+                    <el-button @click="aiForm.apiKey = ''">清空</el-button>
+                  </template>
+                </el-input>
+                <div style="font-size:12px;color:#909399;margin-top:4px;">
+                  DeepSeek 官网：<a href="https://platform.deepseek.com" target="_blank">https://platform.deepseek.com</a>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="模型">
+                <el-select v-model="aiForm.model" style="width:200px;">
+                  <el-option label="deepseek-chat（推荐）" value="deepseek-chat"></el-option>
+                  <el-option label="deepseek-reasoner（推理模型）" value="deepseek-reasoner"></el-option>
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="API 地址">
+                <el-input v-model="aiForm.baseUrl" style="max-width:360px;"></el-input>
+              </el-form-item>
+
+              <el-form-item label="角色设定">
+                <el-input
+                  v-model="aiForm.systemPrompt"
+                  type="textarea"
+                  :rows="6"
+                  placeholder="定义 AI 的角色、能力、回答风格等">
+                </el-input>
+                <div style="font-size:12px;color:#909399;margin-top:4px;">
+                  角色：哈喽租车客服小哈，负责租车推荐、订单咨询、门店导航、保险说明等
+                </div>
+              </el-form-item>
+
+              <el-form-item label="回复温度">
+                <el-slider
+                  v-model="aiForm.temperature"
+                  :min="0"
+                  :max="2"
+                  :step="0.1"
+                  show-input
+                  input-size="small"
+                  style="max-width:280px;">
+                </el-slider>
+                <div style="font-size:12px;color:#909399;margin-top:4px;">0 = 精准稳定，2 = 富有创意</div>
+              </el-form-item>
+
+              <el-form-item label="最大 Token">
+                <el-input-number
+                  v-model="aiForm.maxTokens"
+                  :min="256"
+                  :max="4096"
+                  :step="128">
+                </el-input-number>
+              </el-form-item>
+
+              <el-form-item>
+                <el-button type="primary" @click="saveAIConfig" :loading="aiSaving">💾 保存配置</el-button>
+                <el-button @click="loadAIConfig">🔄 重新加载</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
+
+        <!-- ============ 地图配置 ============ -->
+        <div v-if="activeMenu === 'map'">
+          <div class="panel">
+            <h3 style="margin-top:0;">🗺️ 高德地图 Key 配置</h3>
+            <div style="font-size:12px;color:#909399;margin-bottom:16px;">
+              高德 Web 服务 Key 用于后端地理编码（地址→经纬度），由后端代理调用。
+              HarmonyOS 地图 SDK Key 用于 App 内嵌地图（可选）。
+              <a href="https://console.amap.com/dev/key/app" target="_blank" style="color:#409eff;">👉 前往高德控制台申请 Key</a>
+            </div>
+
+            <el-form :model="mapForm" label-width="180px" style="max-width:640px;">
+              <el-form-item label="高德 Web 服务 Key">
+                <el-input
+                  v-model="mapForm.amapWebKey"
+                  show-password
+                  type="password"
+                  placeholder="高德 Web 服务 Key（地理编码用）"
+                  style="max-width:400px;">
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="HarmonyOS 地图 SDK Key（可选）">
+                <el-input
+                  v-model="mapForm.amapHmsKey"
+                  placeholder="高德 HarmonyOS NEXT 平台 Key"
+                  style="max-width:400px;">
+                </el-input>
+                <div style="font-size:12px;color:#909399;margin-top:4px;">
+                  不填也能用，HarmonyOS 原生 MapComponent 免费基础地图 ✅
+                </div>
+              </el-form-item>
+
+              <el-form-item>
+                <el-button type="primary" @click="saveMapConfig" :loading="mapSaving">💾 保存地图配置</el-button>
+                <el-button @click="loadMapConfig">🔄 重新加载</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -584,6 +798,46 @@
       </template>
     </el-dialog>
 
+    <!-- Banner 编辑弹窗 -->
+    <el-dialog v-model="bannerDialogVisible" :title="bannerForm.id ? '编辑 Banner' : '新增 Banner'" width="560px" destroy-on-close>
+      <el-form :model="bannerForm" label-width="90px">
+        <el-form-item label="图片">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <el-upload
+              :action="uploadUrl"
+              name="file"
+              :show-file-list="false"
+              :on-success="onBannerUpload"
+              :before-upload="beforeBannerUpload">
+              <el-button>📷 上传图片</el-button>
+            </el-upload>
+            <el-input v-model="bannerForm.imageUrl" placeholder="或直接粘贴图片 URL" style="flex:1;"></el-input>
+          </div>
+          <div v-if="bannerForm.imageUrl" style="margin-top:8px;">
+            <el-image
+              :src="bannerForm.imageUrl"
+              style="width:100%;height:100px;cursor:zoom-in;"
+              fit="cover"
+              :preview-src-list="[bannerForm.imageUrl]"
+              preview-teleported
+              hide-on-click-modal></el-image>
+          </div>
+        </el-form-item>
+        <el-form-item label="标题"><el-input v-model="bannerForm.title" placeholder="广告标题（可选）"></el-input></el-form-item>
+        <el-form-item label="链接"><el-input v-model="bannerForm.link" placeholder="点击跳转链接（可选）"></el-input></el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="bannerForm.sort" :min="1" :max="99" controls-position="right"></el-input-number>
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="bannerForm.enabled"></el-switch>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="bannerDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveBanner">保存</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 
   <!-- Vue3 + Element Plus -->
@@ -607,7 +861,10 @@
           stores: '🏪 门店管理',
           orders: '📋 订单管理',
           users: '👥 用户管理',
-          coupons: '🎫 优惠券管理'
+          coupons: '🎫 优惠券管理',
+          banners: '🖼️ Banner 轮播图',
+          ai: '🤖 AI 客服设置',
+          map: '🗺️ 地图配置'
         }[activeMenu.value] || ''));
 
         // 数据列表
@@ -617,6 +874,156 @@
         const orders = ref([]);
         const users = ref([]);
         const coupons = ref([]);
+
+        // ============ AI 客服 ============
+        const aiConfig = reactive({ hasKey: false, maskedKey: '', model: '', baseUrl: '', systemPrompt: '', temperature: 0.7, maxTokens: 1024 });
+        const aiForm = reactive({ apiKey: '', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com/v1', systemPrompt: '', temperature: 0.7, maxTokens: 1024 });
+        const aiSaving = ref(false);
+
+        // ============ 地图配置 ============
+        const mapForm = reactive({ amapWebKey: '', amapHmsKey: '' });
+        const mapSaving = ref(false);
+
+        async function loadMapConfig() {
+          try {
+            const res = await api('GET', '/admin/map-config');
+            if (res.code && res.data) {
+              mapForm.amapWebKey = res.data.amapWebKey || '';
+              mapForm.amapHmsKey = res.data.amapHmsKey || '';
+            }
+          } catch (e) { console.error(e); }
+        }
+
+        async function saveMapConfig() {
+          mapSaving.value = true;
+          try {
+            const res = await api('POST', '/admin/map-config', mapForm);
+            if (res.code) {
+              ElementPlus.ElMessage.success('✅ 地图配置已保存');
+              loadMapConfig();
+            } else {
+              ElementPlus.ElMessage.error(res.message || '保存失败');
+            }
+          } catch (e) {
+            ElementPlus.ElMessage.error('网络错误');
+          } finally {
+            mapSaving.value = false;
+          }
+        }
+
+        // ============ Banner ============
+        const banners = ref([]);
+        const bannerDialogVisible = ref(false);
+        const bannerForm = reactive({ id: '', imageUrl: '', title: '', link: '', sort: 99, enabled: true });
+        const uploadUrl = '/api/admin/upload';
+
+        async function loadBanners() {
+          try {
+            const res = await api('GET', '/admin/banners');
+            if (res.code) banners.value = res.data;
+          } catch (e) { console.error(e); }
+        }
+
+        function openBannerDialog(row) {
+          if (row) {
+            Object.assign(bannerForm, { ...row });
+          } else {
+            Object.assign(bannerForm, { id: '', imageUrl: '', title: '', link: '', sort: 99, enabled: true });
+          }
+          bannerDialogVisible.value = true;
+        }
+
+        function beforeBannerUpload(file) {
+          const maxSize = 5 * 1024 * 1024;
+          if (file.size > maxSize) {
+            ElementPlus.ElMessage.error('图片不能超过 5MB');
+            return false;
+          }
+          return true;
+        }
+
+        function onBannerUpload(response) {
+          if (response.code && response.data) {
+            bannerForm.imageUrl = response.data.url;
+            ElementPlus.ElMessage.success('图片上传成功');
+          } else {
+            ElementPlus.ElMessage.error(response.message || '上传失败');
+          }
+        }
+
+        async function saveBanner() {
+          if (!bannerForm.imageUrl) {
+            ElementPlus.ElMessage.warning('请填写图片');
+            return;
+          }
+          try {
+            let res;
+            if (bannerForm.id) {
+              res = await api('PUT', '/admin/banners/' + bannerForm.id, bannerForm);
+            } else {
+              res = await api('POST', '/admin/banners', bannerForm);
+            }
+            if (res.code) {
+              ElementPlus.ElMessage.success('保存成功');
+              bannerDialogVisible.value = false;
+              loadBanners();
+            } else {
+              ElementPlus.ElMessage.error(res.message || '保存失败');
+            }
+          } catch (e) {
+            ElementPlus.ElMessage.error('网络错误');
+          }
+        }
+
+        async function deleteBanner(row) {
+          try {
+            await ElementPlus.ElMessageBox.confirm('确认删除这条 Banner？', '提示', { type: 'warning' });
+          } catch (e) { return; }
+          const res = await api('DELETE', '/admin/banners/' + row.id);
+          if (res.code) {
+            ElementPlus.ElMessage.success('已删除');
+            loadBanners();
+          } else {
+            ElementPlus.ElMessage.error(res.message || '删除失败');
+          }
+        }
+
+        async function toggleBanner(row) {
+          await api('PUT', '/admin/banners/' + row.id, { enabled: row.enabled });
+        }
+
+        async function loadAIConfig() {
+          try {
+            const res = await api('GET', '/admin/ai-config');
+            if (res.code) {
+              Object.assign(aiConfig, res.data);
+              Object.assign(aiForm, {
+                model: res.data.model,
+                baseUrl: res.data.baseUrl,
+                systemPrompt: res.data.systemPrompt,
+                temperature: res.data.temperature,
+                maxTokens: res.data.maxTokens
+              });
+            }
+          } catch (e) { console.error('loadAIConfig error', e); }
+        }
+
+        async function saveAIConfig() {
+          aiSaving.value = true;
+          try {
+            const res = await api('POST', '/admin/ai-config', aiForm);
+            if (res.code) {
+              ElementPlus.ElMessage.success('AI 配置保存成功 🤖');
+              loadAIConfig(); // 刷新显示
+            } else {
+              ElementPlus.ElMessage.error(res.message || '保存失败');
+            }
+          } catch (e) {
+            ElementPlus.ElMessage.error('网络错误');
+          } finally {
+            aiSaving.value = false;
+          }
+        }
 
         // 筛选
         const carSearch = ref('');
@@ -933,11 +1340,20 @@
         // ============ 启动 ============
         onMounted(() => {
           loadStats();
+          loadAIConfig();
+          loadBanners();
+          loadMapConfig();
         });
 
         return {
           activeMenu, pageTitle,
-          stats, cars, stores, orders, users, coupons,
+          stats, cars, stores, orders, users, coupons, banners,
+          aiConfig, aiForm, aiSaving, loadAIConfig, saveAIConfig,
+          mapForm, mapSaving, loadMapConfig, saveMapConfig,
+          bannerDialogVisible, bannerForm, uploadUrl,
+          openBannerDialog, saveBanner, deleteBanner, toggleBanner,
+          beforeBannerUpload, onBannerUpload,
+          loadBanners,
           carSearch, orderStatusFilter,
           carDialogVisible, storeDialogVisible, couponDialogVisible,
           carForm, storeForm, couponForm,

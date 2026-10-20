@@ -25,6 +25,9 @@ export interface StoreInfo {
   id: string;
   name: string;
   address: string;
+  lng?: number;
+  lat?: number;
+  city?: string;
   distance: string;
   phone: string;
   hours: string;
@@ -108,4 +111,14 @@ export interface ViolationRecord {
   points: number;
   fine: number;
   status: string;
+}
+
+// Banner 轮播图
+export interface BannerInfo {
+  id: string;
+  imageUrl: string;
+  title: string;
+  link: string;
+  sort: number;
+  enabled: boolean;
 }

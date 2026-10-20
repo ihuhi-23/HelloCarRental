@@ -1,5 +1,6 @@
-﻿import router from '@ohos.router';
+﻿﻿import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
+import { SwiperBanner } from '../common/SwiperBanner';
 
 /**
  * 页面 2：车辆筛选
@@ -48,8 +49,13 @@ struct CarFilter {
         title: '筛选条件',
         rightText: '重置',
         onBack: (): void => { router.back(); },
-        onRightClick: (): void => this.reset()
+        onRightClick: (): void => {
+          this.selectedTypes = [];
+          this.selectedBrands = [];
+        }
       })
+
+      SwiperBanner()
 
       Scroll() {
         Column() {

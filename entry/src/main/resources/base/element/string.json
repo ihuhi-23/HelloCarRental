@@ -8,6 +8,7 @@
     { "name": "tab_order", "value": "订单" },
     { "name": "tab_chat", "value": "客服" },
     { "name": "tab_mine", "value": "我的" },
+    { "name": "reason_location", "value": "用于门店地图定位，显示您附近的取车门店" },
     { "name": "btn_confirm", "value": "确认" },
     { "name": "btn_cancel", "value": "取消" },
     { "name": "btn_primary", "value": "立即预订" }

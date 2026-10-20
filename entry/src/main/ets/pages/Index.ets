@@ -1,13 +1,13 @@
 import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
 import { TabBar } from '../common/TabBar';
-import { mockCarList } from '../common/MockData';
 import { CarInfo } from '../common/Interfaces';
 import { fetchHomeCars } from '../common/HttpUtil';
 
 /**
  * 页面 1：车辆列表 - 首页
  * 【复杂页面】包含搜索、筛选、车辆卡片列表、门店选择
+ * 数据来源：后端 /api/cars（HttpUtil.fetchHomeCars）
  */
 @Entry
 @Component
@@ -15,7 +15,7 @@ struct Index {
   @State currentTab: number = 0;
   @State searchText: string = '';
   @State storeName: string = '浦东机场 T2 · 1.2km';
-  @State carList: CarInfo[] = mockCarList;
+  @State carList: CarInfo[] = [];
   @State isLoading: boolean = true;
 
   // Swiper Banner 数据
@@ -45,7 +45,7 @@ struct Index {
   }
 
   private goConfirm(carId: string) {
-    router.pushUrl({ url: 'pages/OrderConfirm?carId=' + carId });
+    router.pushUrl({ url: 'pages/OrderConfirm', params: { carId: carId } });
   }
 
   private switchTab(index: number) {
@@ -143,13 +143,12 @@ struct Index {
   @Builder
   CarCard(car: CarInfo) {
     Column() {
-      // ===== 大图（全宽 180px 高）=====
+      // ===== 大图 =====
       Image(car.imageUrl)
         .width('100%')
         .height(180)
         .objectFit(ImageFit.Cover)
         .borderRadius({ topLeft: 12, topRight: 12 })
-        .backgroundColor($r('app.color.bg_page'))
 
       Column() {
         Row() {
