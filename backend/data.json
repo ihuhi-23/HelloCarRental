@@ -1,0 +1,266 @@
+{
+  "cars": [
+    {
+      "id": "car001",
+      "name": "宝马 3系 325Li",
+      "brand": "宝马",
+      "imageUrl": "https://www.bmw.com.cn/content/dam/bmw/marketCN/common/all-models/sales_promotion/20241231/4series_coupe_inspire_kv.jpg/jcr:content/renditions/cq5dam.resized.img.1680.large.time1735526344048.jpg",
+      "pricePerDay": 298,
+      "originalPrice": 358,
+      "seats": 5,
+      "transmission": "自动",
+      "fuelType": "汽油",
+      "displacement": "2.0T",
+      "inventory": 2,
+      "features": [
+        "真皮座椅",
+        "倒车影像",
+        "定速巡航"
+      ],
+      "rating": 4.9,
+      "orderCount": 1280,
+      "featuresStr": "真皮座椅,倒车影像,定速巡航"
+    },
+    {
+      "id": "car002",
+      "name": "丰田凯美瑞 2.5G",
+      "brand": "丰田",
+      "imageUrl": "🚙",
+      "pricePerDay": 198,
+      "originalPrice": 238,
+      "seats": 5,
+      "transmission": "自动",
+      "fuelType": "汽油",
+      "displacement": "2.5L",
+      "inventory": 5,
+      "features": [
+        "省油耐造",
+        "空间宽敞",
+        "舒适静音"
+      ],
+      "rating": 4.8,
+      "orderCount": 2150
+    },
+    {
+      "id": "car003",
+      "name": "大众帕萨特 380TSI",
+      "brand": "大众",
+      "imageUrl": "🚘",
+      "pricePerDay": 228,
+      "seats": 5,
+      "transmission": "自动",
+      "fuelType": "汽油",
+      "displacement": "2.0T",
+      "inventory": 3,
+      "features": [
+        "商务首选",
+        "动力充沛"
+      ],
+      "rating": 4.7,
+      "orderCount": 960
+    },
+    {
+      "id": "car004",
+      "name": "别克GL8 ES 豪华型",
+      "brand": "别克",
+      "imageUrl": "🚐",
+      "pricePerDay": 388,
+      "seats": 7,
+      "transmission": "自动",
+      "fuelType": "汽油",
+      "displacement": "2.0T",
+      "inventory": 1,
+      "features": [
+        "7座MPV",
+        "商务出行",
+        "电动滑门"
+      ],
+      "rating": 4.9,
+      "orderCount": 580
+    },
+    {
+      "id": "car005",
+      "name": "特斯拉 Model 3",
+      "brand": "特斯拉",
+      "imageUrl": "⚡",
+      "pricePerDay": 328,
+      "originalPrice": 398,
+      "seats": 5,
+      "transmission": "自动",
+      "fuelType": "纯电动",
+      "displacement": "-",
+      "inventory": 4,
+      "features": [
+        "自动驾驶",
+        "大屏中控",
+        "零排放"
+      ],
+      "rating": 4.8,
+      "orderCount": 1420
+    },
+    {
+      "id": "car006",
+      "name": "奔驰C级 C260L",
+      "brand": "奔驰",
+      "imageUrl": "🏎️",
+      "pricePerDay": 458,
+      "seats": 5,
+      "transmission": "自动",
+      "fuelType": "汽油",
+      "displacement": "1.5T",
+      "inventory": 2,
+      "features": [
+        "豪华品牌",
+        "内饰精致"
+      ],
+      "rating": 4.9,
+      "orderCount": 720
+    }
+  ],
+  "stores": [
+    {
+      "id": "store001",
+      "name": "浦东机场 T2 航站楼店",
+      "address": "上海市浦东新区浦东机场T2航站楼出发层",
+      "distance": "1.2km",
+      "phone": "021-12345678",
+      "hours": "24小时营业",
+      "hasPickup": true
+    },
+    {
+      "id": "store002",
+      "name": "虹桥机场 T2 航站楼店",
+      "address": "上海市长宁区虹桥机场T2航站楼一层",
+      "distance": "8.5km",
+      "phone": "021-23456789",
+      "hours": "06:00-24:00",
+      "hasPickup": true
+    },
+    {
+      "id": "store003",
+      "name": "人民广场步行街店",
+      "address": "上海市黄浦区南京东路100号",
+      "distance": "3.2km",
+      "phone": "021-34567890",
+      "hours": "08:00-22:00",
+      "hasPickup": false
+    },
+    {
+      "id": "store004",
+      "name": "陆家嘴金融中心店",
+      "address": "上海市浦东新区陆家嘴环路200号",
+      "distance": "5.1km",
+      "phone": "021-45678901",
+      "hours": "08:00-22:00",
+      "hasPickup": true
+    },
+    {
+      "id": "store005",
+      "name": "南宁学院",
+      "address": "龙亭路8号",
+      "distance": "",
+      "phone": "13838383388",
+      "hours": "7:00-23:00",
+      "hasPickup": true
+    }
+  ],
+  "orders": [
+    {
+      "id": "order000",
+      "orderNo": "HC2026101900000",
+      "carName": "宝马 3系 325Li",
+      "carImage": "🚗",
+      "pickupStore": "浦东机场 T2 航站楼店",
+      "returnStore": "浦东机场 T2 航站楼店",
+      "pickupTime": "2026-10-19 10:00",
+      "returnTime": "2026-10-22 10:00",
+      "days": 3,
+      "totalPrice": 894,
+      "status": "IN_USE",
+      "createTime": "2026-10-18 14:30",
+      "discount": 50,
+      "insurance": 30
+    },
+    {
+      "id": "order001",
+      "orderNo": "HC2026101500001",
+      "carName": "宝马 3系 325Li",
+      "carImage": "🚗",
+      "pickupStore": "浦东机场 T2 航站楼店",
+      "returnStore": "浦东机场 T2 航站楼店",
+      "pickupTime": "2026-10-20 10:00",
+      "returnTime": "2026-10-23 10:00",
+      "days": 3,
+      "totalPrice": 894,
+      "status": "CONFIRMED",
+      "createTime": "2026-10-15 14:30",
+      "discount": 50,
+      "insurance": 30
+    },
+    {
+      "id": "order002",
+      "orderNo": "HC2026101000002",
+      "carName": "丰田凯美瑞 2.5G",
+      "carImage": "🚙",
+      "pickupStore": "人民广场步行街店",
+      "returnStore": "虹桥机场 T2 航站楼店",
+      "pickupTime": "2026-10-12 09:00",
+      "returnTime": "2026-10-14 18:00",
+      "days": 2,
+      "totalPrice": 436,
+      "status": "COMPLETED",
+      "createTime": "2026-10-10 16:20",
+      "discount": 30
+    },
+    {
+      "id": "order003",
+      "orderNo": "HC2026100500003",
+      "carName": "特斯拉 Model 3",
+      "carImage": "⚡",
+      "pickupStore": "陆家嘴金融中心店",
+      "returnStore": "陆家嘴金融中心店",
+      "pickupTime": "2026-10-06 14:00",
+      "returnTime": "2026-10-09 14:00",
+      "days": 3,
+      "totalPrice": 984,
+      "status": "COMPLETED",
+      "createTime": "2026-10-05 10:15"
+    }
+  ],
+  "user": {
+    "id": "user001",
+    "name": "张三",
+    "phone": "138****8888",
+    "avatar": "👤",
+    "memberLevel": "黄金会员",
+    "memberExpire": "2027-12-31",
+    "points": 2680,
+    "verified": true
+  },
+  "coupons": [
+    {
+      "id": "cp001",
+      "name": "新用户立减券",
+      "discount": 50,
+      "threshold": 300,
+      "expireDate": "2026-12-31",
+      "used": false
+    },
+    {
+      "id": "cp002",
+      "name": "周末出行优惠",
+      "discount": 100,
+      "threshold": 500,
+      "expireDate": "2026-11-30",
+      "used": false
+    },
+    {
+      "id": "cp003",
+      "name": "长租专享券",
+      "discount": 200,
+      "threshold": 1000,
+      "expireDate": "2026-12-15",
+      "used": false
+    }
+  ]
+}

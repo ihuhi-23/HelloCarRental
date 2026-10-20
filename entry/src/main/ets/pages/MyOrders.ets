@@ -68,23 +68,25 @@ struct MyOrders {
       }
       .width('100%').backgroundColor(Color.White)
 
-      Scroll() {
-        Column() {
-          if (this.getFilteredOrders().length === 0) {
+      // ===== List 列表组件（循环渲染容器 #3）=====
+      List() {
+        if (this.getFilteredOrders().length === 0) {
+          ListItem() {
             Column() {
               Text('📋').fontSize(60)
               Text('暂无订单').fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_secondary')).margin({ top: 12 })
             }
             .width('100%').height(300).justifyContent(FlexAlign.Center)
-          } else {
-            ForEach(this.getFilteredOrders(), (order: OrderInfo) => {
-              this.OrderCard(order)
-            }, (order: OrderInfo) => order.id)
           }
+        } else {
+          ForEach(this.getFilteredOrders(), (order: OrderInfo) => {
+            ListItem() {
+              this.OrderCard(order)
+            }
+          }, (order: OrderInfo) => order.id)
         }
-        .padding(16)
       }
-      .layoutWeight(1).scrollBar(BarState.Off)
+      .width('100%').layoutWeight(1).scrollBar(BarState.Off).padding({ left: 16, right: 16 })
 
       TabBar({ currentIndex: this.currentTab, onTabChange: (i: number): void => this.switchTab(i) })
     }
