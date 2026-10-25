@@ -90,37 +90,19 @@ npm start                                    # 默认 http://localhost:3000
 
 不填 Key 时后端仍可启动：AI 客服会返回缺少 Key 的提示，门店地图为空，其余功能正常。
 
-## 环境版本说明（机房版本过低怎么办）
+## 环境版本说明
 
-本工程由 **DevEco Studio 6.1.1** 创建，关键版本配置：
+本工程已按 **DevEco Studio 6.1.0（HarmonyOS 6.1.0(23)）** 配置，机房和本机都能直接打开。关键配置：
 
 | 配置项 | 位置 | 当前值 |
 |--------|------|--------|
-| `modelVersion` | `oh-package.json5`、`hvigor/hvigor-config.json5` | `26.0.0` |
-| `compatibleSdkVersion` | `build-profile.json5` | `6.1.1(24)` |
-| `targetSdkVersion` | `build-profile.json5` | `26.0.0` |
+| `modelVersion` | `oh-package.json5`、`hvigor/hvigor-config.json5` | `6.1.0` |
+| `compatibleSdkVersion` | `build-profile.json5` | `6.1.0(23)` |
+| `targetSdkVersion` | `build-profile.json5` | `6.1.0(23)` |
 
-机房常见的是 **DevEco Studio 6.1.0（HarmonyOS 6.1.0(23)）**，直接打开会提示「版本不匹配 / SDK 版本过低」。两种解决办法：
-
-**方案 A（推荐）：安装匹配版本**
-在机房电脑安装 DevEco Studio 6.1.1 Release 及 API 24 SDK。只影响本机环境，不修改工程。
-
-**方案 B：把工程降到 6.1.0**
-逐个文件改成：
-
-```json5
-// oh-package.json5
-"modelVersion": "6.1.0"
-
-// hvigor/hvigor-config.json5
-"modelVersion": "6.1.0"
-
-// build-profile.json5 -> app.products[0]
-"compatibleSdkVersion": "6.1.0(23)",
-"targetSdkVersion": "6.1.0(23)",
-```
-
-改完后需 **Build → Clean Project** 再同步。若编译报错提示某个 API 在当前 SDK 不存在，说明用到了 6.1.1 才有的接口，此时只能走方案 A。
+- 若你在 **6.1.0 及以上**的 IDE 打开：直接同步、编译即可，无需改动。
+- 若之前打开提示「版本不匹配 / SDK 版本过低」，说明 IDE 低于 6.1.0，需要安装 DevEco Studio 6.1.0 Release 及 HarmonyOS SDK 6.1.0(23)。
+- 若想用更高版本的 SDK 构建，把上述三处改回对应版本号（如 `6.1.1` / `26.0.0` 与 `6.1.1(24)`），再 **Build → Clean Project** 后同步。
 
 ## 常见问题
 
