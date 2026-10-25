@@ -10,3 +10,7 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+**/backend/.env
+**/node_modules
+/backend/ai_config.json
+/backend/map_config.json
