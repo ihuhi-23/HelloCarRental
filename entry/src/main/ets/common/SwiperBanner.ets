@@ -2,9 +2,11 @@ import { BannerInfo } from './Interfaces';
 import { fetchBanners } from './HttpUtil';
 
 /**
- * 通用 Banner 轮播组件
- * 用法：直接 <SwiperBanner /> 插入页面顶部 NavBar 下方即可
- * 后端无 Banner 数据时组件自动隐藏（不占空间）
+ * SwiperBanner 通用 Banner 轮播组件
+ * 数据：HttpUtil.fetchBanners() → GET /api/banners，进入组件时加载一次
+ * 行为：无数据或请求失败时渲染 0 尺寸占位，自动隐藏不占空间
+ * props：无，组件内部自行取数据
+ * 使用页面：Index、CarFilter、OrderConfirm、FeeSettlement、VerifyAuth、Violation
  */
 
 @Component
@@ -22,6 +24,7 @@ export struct SwiperBanner {
       // 没数据就不渲染，不占空间
       Column().width(0).height(0);
     } else {
+      // ===== 轮播主体：图片 + 底部渐变标题，自动播放 =====
       Swiper() {
         ForEach(this.banners, (banner: BannerInfo) => {
           Stack() {

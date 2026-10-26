@@ -1,5 +1,8 @@
 /**
- * 通用页面骨架容器
+ * PageContainer 通用页面骨架容器
+ * 用途：组合 NavBar + 可滚动内容 + TabBar，页面只需传入自己的 content
+ * props：showNavBar/navTitle、showTabBar/currentTab、rightText 及对应回调
+ * 使用页面：当前无页面引用（预留；各页面目前自行拼装 NavBar/TabBar）
  */
 
 @Component
@@ -16,6 +19,7 @@ export struct PageContainer {
 
   build() {
     Column() {
+      // ===== 顶部导航栏（showNavBar 为 true 时显示）=====
       if (this.showNavBar) {
         NavBar({
           title: this.navTitle,
@@ -26,12 +30,15 @@ export struct PageContainer {
         })
       }
 
+      // ===== 可滚动内容区（页面通过 @BuilderParam content 传入）=====
       Scroll() {
         this.content();
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
+      .align(Alignment.Top)
 
+      // ===== 底部标签栏（showTabBar 为 true 时显示）=====
       if (this.showTabBar) {
         TabBar({
           currentIndex: this.currentTab,

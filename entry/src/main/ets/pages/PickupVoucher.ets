@@ -1,11 +1,16 @@
 ﻿import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
-import { OrderInfo } from '../common/Interfaces';
+import { OrderInfo, InfoRow } from '../common/Interfaces';
 import { fetchOrderDetail, fetchOrders } from '../common/HttpUtil';
 
 /**
- * 页面 6：取车凭证
- * 数据来源：后端 /api/orders/:id + /api/stores
+ * 页面：PickupVoucher 取车凭证
+ * 分工：成员一 · 简单页面
+ * 入口：PaymentSuccess 支付成功后「查看取车凭证」
+ * 功能：二维码凭证、车辆与订单信息、取车提示、我的订单入口
+ * 容器：List（取车信息列表）、Scroll（页面滚动）
+ * 关键状态：order（当前订单）、isLoading（加载中）
+ * 关键方法：loadData() 调用 HttpUtil.fetchOrderDetail()/fetchOrders()、goOrders() 进入 MyOrders
  */
 @Entry
 @Component
@@ -13,10 +18,12 @@ struct PickupVoucher {
   @State order: OrderInfo | null = null;
   @State isLoading: boolean = true;
 
+  // 作用：页面创建时加载取车凭证所需订单数据
   aboutToAppear() {
     this.loadData();
   }
 
+  // 作用：按 orderId 调用 HttpUtil.fetchOrderDetail()，取不到时回退到 fetchOrders() 的已确认订单
   private async loadData() {
     try {
       const params = router.getParams() as Record<string, string>;
@@ -35,12 +42,30 @@ struct PickupVoucher {
     }
   }
 
+  // 作用：跳转到 MyOrders 我的订单页
   private goOrders() { router.replaceUrl({ url: 'pages/MyOrders' }); }
+
+  // 作用：把订单的门店、时间、天数、金额组装成展示行
+  private getInfoRows(): InfoRow[] {
+    const info: OrderInfo | null = this.order;
+    if (!info) return [];
+    const rows: InfoRow[] = [
+      { label: '取车门店', value: info.pickupStore },
+      { label: '还车门店', value: info.returnStore },
+      { label: '取车时间', value: info.pickupTime },
+      { label: '还车时间', value: info.returnTime },
+      { label: '租车天数', value: info.days + '天' },
+      { label: '订单金额', value: '¥' + info.totalPrice }
+    ];
+    return rows;
+  }
 
   build() {
     Column() {
+      // ===== 顶部导航栏 =====
       NavBar({ title: '取车凭证', onBack: (): void => { router.back(); }, rightText: '', onRightClick: (): void => {} })
 
+      // ===== 加载中 / 凭证内容两种状态 =====
       if (this.isLoading || !this.order) {
         Column() {
           Text('⏳').fontSize(48)
@@ -48,8 +73,10 @@ struct PickupVoucher {
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
+        // ===== 凭证内容滚动区 =====
         Scroll() {
           Column() {
+            // ===== 凭证卡：车辆、订单号与二维码 =====
             Column() {
               Row() {
                 Image(this.order.carImage).width(64).height(64).objectFit(ImageFit.Cover).borderRadius(12)
@@ -70,15 +97,25 @@ struct PickupVoucher {
 
             Column() {
               Text('取车信息').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).margin({ bottom: 16 })
-              this.InfoRow('取车门店', this.order.pickupStore)
-              this.InfoRow('还车门店', this.order.returnStore)
-              this.InfoRow('取车时间', this.order.pickupTime)
-              this.InfoRow('还车时间', this.order.returnTime)
-              this.InfoRow('租车天数', this.order.days + '天')
-              this.InfoRow('订单金额', '¥' + this.order.totalPrice)
+              // ===== 取车信息列表：List + ListItem + ForEach =====
+              List() {
+                ForEach(this.getInfoRows(), (row: InfoRow) => {
+                  ListItem() {
+                    Row() {
+                      Text(row.label).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_secondary')).width(80)
+                      Text(row.value).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_primary')).layoutWeight(1)
+                    }
+                    .width('100%').padding({ top: 8, bottom: 8 })
+                  }
+                }, (row: InfoRow): string => row.label)
+              }
+              .width('100%').scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.None)
+              .nestedScroll({ scrollForward: NestedScrollMode.PARENT_FIRST, scrollBackward: NestedScrollMode.PARENT_FIRST })
             }
             .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+            // ===== 温馨提示 =====
             Column() {
               Text('温馨提示').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).margin({ bottom: 8 })
               Text('• 请携带本人身份证和驾驶证原件').fontSize($r('app.float.font_size_small')).fontColor($r('app.color.text_secondary'))
@@ -89,8 +126,9 @@ struct PickupVoucher {
           }
           .padding(16)
         }
-        .layoutWeight(1).scrollBar(BarState.Off)
+        .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
 
+        // ===== 底部「我的订单」按钮 =====
         Button() {
           Text('我的订单').fontSize($r('app.float.font_size_body')).fontColor(Color.White).fontWeight(FontWeight.Medium)
         }
@@ -99,14 +137,5 @@ struct PickupVoucher {
       }
     }
     .width('100%').height('100%').backgroundColor($r('app.color.bg_page'))
-  }
-
-  @Builder
-  InfoRow(label: string, value: string) {
-    Row() {
-      Text(label).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_secondary')).width(80)
-      Text(value).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_primary')).layoutWeight(1)
-    }
-    .width('100%').padding({ top: 8, bottom: 8 })
   }
 }

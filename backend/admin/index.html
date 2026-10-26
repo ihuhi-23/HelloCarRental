@@ -178,12 +178,112 @@
     }
     /* 表格内的缩略图不要被单元格裁剪，留出缩放光标的点击热区 */
     .el-table .el-image { display: inline-flex; }
+
+    /* ============ 移动端适配 ============ */
+    /* 移动端菜单按钮：桌面端隐藏 */
+    .menu-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: #f2f3f5;
+      color: #303133;
+      font-size: 18px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    /* 移动端菜单遮罩 */
+    .menu-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1000;
+    }
+
+    @media (max-width: 768px) {
+      /* 侧边栏改为抽屉：同一个 DOM，滑动显示，不额外复制菜单 */
+      .sidebar {
+        width: 250px;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .menu-mask.show { display: block; }
+      .logo { padding: 18px 16px; font-size: 16px; }
+      .logo-icon { font-size: 24px; }
+
+      .main { margin-left: 0; }
+      .menu-toggle { display: inline-flex; }
+      .header { padding: 10px 14px; }
+      .header-title { font-size: 16px; flex: 1; }
+      .header-user > span:first-child { display: none; }
+      .content { padding: 12px; }
+
+      /* 统计卡片：两列自适应，窄屏一列 */
+      .stat-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+      .stat-card { padding: 12px; gap: 10px; }
+      .stat-icon { width: 42px; height: 42px; font-size: 20px; border-radius: 10px; }
+      .stat-info .value { font-size: 19px; }
+      .stat-info .label { font-size: 12px; }
+
+      .panel { padding: 14px; margin-bottom: 14px; border-radius: 8px; }
+      .panel-title { font-size: 15px; margin-bottom: 12px; padding-bottom: 10px; }
+
+      /* 操作栏纵向排列，按钮占满一行 */
+      .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+      .toolbar-left { width: 100%; }
+      .toolbar-left .el-input,
+      .toolbar-left .el-select { width: 100% !important; }
+      .toolbar > .el-button { width: 100%; margin-left: 0 !important; }
+
+      /* 表格：允许横向滑动，单元格内边距收紧 */
+      .el-table { font-size: 13px; }
+      .el-table th.el-table__cell,
+      .el-table td.el-table__cell { padding: 8px 0; }
+      .el-table .cell { padding: 0 8px; }
+
+      /* 弹窗：接近全屏，避免超出屏幕 */
+      .el-dialog {
+        width: 94% !important;
+        max-width: 94% !important;
+        margin-top: 6vh !important;
+        border-radius: 10px;
+      }
+      .el-dialog__body { padding: 16px; max-height: 68vh; overflow-y: auto; }
+      .el-message-box { width: 90% !important; max-width: 90% !important; }
+
+      /* 表单：标签置顶，输入框占满 */
+      .el-form-item { display: block; margin-bottom: 16px; }
+      .el-form-item__label {
+        display: block !important;
+        width: auto !important;
+        text-align: left !important;
+        padding: 0 0 6px 0 !important;
+        line-height: 1.4 !important;
+      }
+      .el-form-item__content { margin-left: 0 !important; }
+      .el-form-item__content > .el-input,
+      .el-form-item__content > .el-select,
+      .el-form-item__content > .el-textarea { width: 100% !important; }
+      .el-form-item__content > .el-input-number { width: 100% !important; }
+      .el-dialog__footer { display: flex; gap: 8px; padding: 12px 16px 16px; }
+      .el-dialog__footer .el-button { flex: 1; margin-left: 0; }
+
+      /* 图表高度略降，避免首屏被占满 */
+      .chart-container { height: 240px; }
+    }
   </style>
 </head>
 <body>
   <div id="app">
-    <!-- 侧边栏 -->
-    <div class="sidebar">
+    <!-- 侧边栏（移动端为可滑出抽屉） -->
+    <div class="sidebar" :class="{ open: mobileMenuOpen }">
       <div class="logo">
         <span class="logo-icon">🚗</span>
         <span>Hello 租车后台</span>
@@ -233,10 +333,14 @@
         </el-menu-item>
       </el-menu>
     </div>
+    <div class="menu-mask" :class="{ show: mobileMenuOpen }" @click="mobileMenuOpen = false"></div>
 
     <!-- 主内容 -->
     <div class="main">
       <div class="header">
+        <button class="menu-toggle" @click="mobileMenuOpen = true" aria-label="菜单">
+          <el-icon><Menu /></el-icon>
+        </button>
         <div class="header-title">{{ pageTitle }}</div>
         <div class="header-user">
           <span>🔧 管理员</span>
@@ -427,11 +531,12 @@
             </div>
             <el-table :data="filteredOrders" stripe border style="width: 100%">
               <el-table-column prop="orderNo" label="订单号" width="180"></el-table-column>
-              <el-table-column label="车辆" width="180">
+              <el-table-column label="车辆" width="220">
                 <template #default="{ row }">
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:22px;">{{ row.carImage }}</span>
-                    <span>{{ row.carName }}</span>
+                    <img v-if="isImageUrl(row.carImage)" :src="getImageUrl(row.carImage)" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #ebeef5;flex-shrink:0;" />
+                    <span v-else style="font-size:24px;flex-shrink:0;">{{ row.carImage || '🚗' }}</span>
+                    <span style="font-size:13px;line-height:1.3;">{{ row.carName }}</span>
                   </div>
                 </template>
               </el-table-column>
@@ -470,7 +575,9 @@
               <el-table-column label="用户" width="200">
                 <template #default="{ row }">
                   <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:28px;">{{ row.avatar || '👤' }}</span>
+                    <el-avatar :size="36" :src="row.avatar || ''" style="background:#FF6B00;color:#fff;">
+                      {{ (row.name || '用').charAt(0) }}
+                    </el-avatar>
                     <div>
                       <div style="font-weight:600;">{{ row.name }}</div>
                       <div style="font-size:12px;color:#909399;">{{ row.phone }}</div>
@@ -715,7 +822,7 @@
         <el-form-item label="车辆图片">
           <div style="display:flex;gap:16px;align-items:flex-start;">
             <el-upload
-              :action="API_BASE + '/api/admin/upload'"
+              :action="uploadUrl"
               :show-file-list="false"
               :on-success="handleUploadSuccess"
               :on-error="handleUploadError"
@@ -855,6 +962,8 @@
       setup() {
         // ============ 基础状态 ============
         const activeMenu = ref('dashboard');
+        // 移动端抽屉菜单开关
+        const mobileMenuOpen = ref(false);
         const pageTitle = computed(() => ({
           dashboard: '📊 数据概览',
           cars: '🚗 车辆管理',
@@ -1096,6 +1205,7 @@
 
         function handleMenuSelect(idx) {
           activeMenu.value = idx;
+          mobileMenuOpen.value = false;
           loadPageData(idx);
         }
 
@@ -1346,7 +1456,7 @@
         });
 
         return {
-          activeMenu, pageTitle,
+          activeMenu, pageTitle, mobileMenuOpen,
           stats, cars, stores, orders, users, coupons, banners,
           aiConfig, aiForm, aiSaving, loadAIConfig, saveAIConfig,
           mapForm, mapSaving, loadMapConfig, saveMapConfig,

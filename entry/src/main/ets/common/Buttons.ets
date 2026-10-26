@@ -1,5 +1,8 @@
 /**
- * 按钮组件
+ * PrimaryButton 主按钮组件
+ * 用途：统一样式的橙色主操作按钮（如"立即预订"）
+ * props：text 按钮文字；btnEnabled 是否可用；btnHeight 高度；onTap 点击回调
+ * 使用页面：当前无页面引用（预留通用按钮）
  */
 
 @Component

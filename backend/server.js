@@ -4,19 +4,64 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const crypto = require('crypto');
+
+// ===== 环境变量（读取 backend/.env，不引入额外依赖）=====
+const ENV_FILE = path.join(__dirname, '.env');
+
+function loadEnvFile() {
+  if (!fs.existsSync(ENV_FILE)) return;
+  fs.readFileSync(ENV_FILE, 'utf-8').split(/\r?\n/).forEach((line) => {
+    const text = line.trim();
+    if (!text || text.startsWith('#')) return;
+    const idx = text.indexOf('=');
+    if (idx === -1) return;
+    const key = text.slice(0, idx).trim();
+    let value = text.slice(idx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = value;
+  });
+}
+
+loadEnvFile();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
-app.use(express.json());
+// 头像以 base64 上传，默认 100kb 限制不够，这里放宽到 8MB（后端会再校验解码后 ≤2MB）
+app.use(express.json({ limit: '8mb' }));
+
+// 包装 async 路由：Express 4 不会自动捕获 async 里抛出的异常，
+// 包一层后统一交给下方错误中间件，避免请求悬挂或进程崩溃
+function wrapAsync(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const MAP_CONFIG_FILE = path.join(__dirname, 'map_config.json');
 
+// ===== 原子写文件 =====
+// 先写临时文件并 fsync 落盘，再 rename 覆盖目标文件。
+// 进程在写入途中被杀也不会留下半个 JSON，避免后端下次启动直接解析失败。
+function writeJsonAtomic(file, data) {
+  const tmp = file + '.tmp';
+  const fd = fs.openSync(tmp, 'w');
+  try {
+    fs.writeSync(fd, JSON.stringify(data, null, 2), null, 'utf-8');
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(tmp, file);
+}
+
 // ===== 高德地图 Key 管理 =====
-const DEFAULT_MAP_CONFIG = { amapWebKey: '8c7cd33d18989b043109fa5b31a3cd7b', amapHmsKey: '' };
+// Key 默认值来自环境变量，不再硬编码在源码里；实际以 map_config.json 为准
+const DEFAULT_MAP_CONFIG = { amapWebKey: process.env.AMAP_WEB_KEY || '', amapHmsKey: '' };
 
 function loadMapConfig() {
   try {
@@ -25,12 +70,12 @@ function loadMapConfig() {
     }
   } catch (e) {}
   const cfg = { ...DEFAULT_MAP_CONFIG };
-  fs.writeFileSync(MAP_CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  writeJsonAtomic(MAP_CONFIG_FILE, cfg);
   return cfg;
 }
 
 function saveMapConfig(cfg) {
-  fs.writeFileSync(MAP_CONFIG_FILE, JSON.stringify({ ...DEFAULT_MAP_CONFIG, ...cfg }, null, 2));
+  writeJsonAtomic(MAP_CONFIG_FILE, { ...DEFAULT_MAP_CONFIG, ...cfg });
 }
 
 // 高德地理编码代理（后端调高德 API，隐藏 Key）
@@ -92,13 +137,155 @@ const upload = multer({
 });
 
 // 读取数据
+// 进程内只保留一份数据对象，所有请求读写同一份：
+// 1) 避免每个请求都重复解析整个 JSON 文件；
+// 2) Node 单线程同步修改 + 原子写盘，写操作天然串行，不会出现两个请求互相覆盖。
+// 若外部手工改了 data.json（mtime 变化），会自动重新加载，保留原有调试习惯。
+let dbCache = null;
+let dbMtime = 0;
+
 function loadData() {
-  return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+  const mtime = fs.statSync(DATA_FILE).mtimeMs;
+  if (!dbCache || mtime !== dbMtime) {
+    dbCache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    dbMtime = mtime;
+  }
+  return dbCache;
 }
 
 // 写入数据（持久化）
 function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  if (data) dbCache = data;
+  if (!dbCache) return;
+  writeJsonAtomic(DATA_FILE, dbCache);
+  dbMtime = fs.statSync(DATA_FILE).mtimeMs;
+}
+
+// ===== ID 生成 =====
+// 生成不会重复的编码：同一毫秒内并发创建时追加序号，避免 Date.now() 撞车
+function uniqueCode(items, field, prefix) {
+  const base = prefix + Date.now();
+  let code = base;
+  let seq = 1;
+  while (items.some((item) => item[field] === code)) {
+    seq += 1;
+    code = base + '-' + seq;
+  }
+  return code;
+}
+
+// 取现有最大编号 +1，避免删除中间项后新建又复用已存在的 id
+function nextSeqCode(items, prefix, idPattern) {
+  let max = 0;
+  (items || []).forEach((item) => {
+    const m = idPattern.exec(item.id);
+    if (m) max = Math.max(max, Number(m[1]));
+  });
+  return prefix + String(max + 1).padStart(3, '0');
+}
+
+// ===== 用户账号与登录态 =====
+// 演示用短信验证码：项目未接入真实短信服务，服务端固定校验 1234
+const SMS_CODE = '1234';
+const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000; // 30 天
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return salt + ':' + hash;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored || stored.indexOf(':') === -1) return false;
+  const parts = stored.split(':');
+  const calc = crypto.scryptSync(password, parts[0], 64);
+  const expected = Buffer.from(parts[1], 'hex');
+  return expected.length === calc.length && crypto.timingSafeEqual(expected, calc);
+}
+
+// 手机号脱敏，返回给客户端时不暴露完整号码
+function maskPhone(phone) {
+  if (!phone || phone.length < 11) return phone || '';
+  return phone.slice(0, 3) + '****' + phone.slice(-4);
+}
+
+// 对外输出的用户对象：永远不带密码
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    phone: maskPhone(user.phone),
+    avatar: user.avatar || '',
+    memberLevel: user.memberLevel || '普通会员',
+    memberExpire: user.memberExpire || '',
+    points: user.points || 0,
+    verified: !!user.verified
+  };
+}
+
+function issueToken(data, userId) {
+  const now = Date.now();
+  // 顺手清理过期会话
+  data.sessions = (data.sessions || []).filter((s) => s.expiresAt > now);
+  const token = crypto.randomBytes(24).toString('hex');
+  data.sessions.push({ token, userId, createdAt: now, expiresAt: now + TOKEN_TTL });
+  return token;
+}
+
+// 从 Authorization: Bearer xxx 解析当前登录用户
+function authUser(req) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) return null;
+  const data = loadData();
+  const now = Date.now();
+  const session = (data.sessions || []).find((s) => s.token === token && s.expiresAt > now);
+  if (!session) return null;
+  const user = (data.users || []).find((u) => u.id === session.userId);
+  return user ? { data, user } : null;
+}
+
+function createUser(data, phone, password, name) {
+  const user = {
+    id: nextSeqCode(data.users, 'user', /^user(\d+)$/),
+    name: name || ('用户' + phone.slice(-4)),
+    phone,
+    password: hashPassword(password),
+    avatar: '',
+    memberLevel: '普通会员',
+    memberExpire: '',
+    points: 0,
+    verified: false,
+    createdAt: new Date().toISOString()
+  };
+  data.users.push(user);
+  return user;
+}
+
+// ===== 首次启动的数据迁移 =====
+// 老版本只有一个 data.user 对象，这里迁移成 users 数组，并写入演示账号
+function migrateUsers() {
+  const data = loadData();
+  let changed = false;
+  if (!Array.isArray(data.users) || data.users.length === 0) {
+    data.users = [
+      { id: 'user001', name: '张三', phone: '13800138000', password: hashPassword('123456'), avatar: '', memberLevel: '黄金会员', memberExpire: '2027-12-31', points: 2680, verified: true, createdAt: new Date().toISOString() },
+      { id: 'user002', name: '李四', phone: '13900139001', password: hashPassword('123456'), avatar: '', memberLevel: '白银会员', memberExpire: '2026-12-31', points: 580, verified: true, createdAt: new Date().toISOString() },
+      { id: 'user003', name: '王五', phone: '13700137002', password: hashPassword('123456'), avatar: '', memberLevel: '钻石会员', memberExpire: '2027-06-30', points: 5200, verified: true, createdAt: new Date().toISOString() },
+      { id: 'user004', name: '赵六', phone: '13600136003', password: hashPassword('123456'), avatar: '', memberLevel: '普通会员', memberExpire: '', points: 120, verified: false, createdAt: new Date().toISOString() },
+      { id: 'user005', name: '孙七', phone: '13500135004', password: hashPassword('123456'), avatar: '', memberLevel: '黄金会员', memberExpire: '2026-11-30', points: 1580, verified: true, createdAt: new Date().toISOString() }
+    ];
+    changed = true;
+  }
+  if (!Array.isArray(data.sessions)) {
+    data.sessions = [];
+    changed = true;
+  }
+  if (data.user) {
+    delete data.user; // 旧的单用户对象已由 users 取代
+    changed = true;
+  }
+  if (changed) saveData(data);
 }
 
 // ===== Banner 轮播图 =====
@@ -224,7 +411,7 @@ app.get('/api/geo/search', async (req, res) => {
   }
 });
 
-// C 端：按城市过滤门店
+// C 端：门店列表（支持 ?city= 按城市过滤）
 app.get('/api/stores', (req, res) => {
   const data = loadData();
   const city = (req.query.city || '').toString();
@@ -252,8 +439,10 @@ app.get('/api/map/stores', (req, res) => {
     avgLat = list.reduce((s, x) => s + x.lat, 0) / list.length;
   }
 
+  const selectMode = (req.query.select || '') === '1';
+
   const markers = list.map(s => `
-    { position: [${s.lng}, ${s.lat}], content: '<div style="padding:4px 8px;background:#FF6B35;color:white;border-radius:12px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);">📍 ${s.name}</div>' }
+    { id: ${JSON.stringify(s.id)}, name: ${JSON.stringify(s.name)}, position: [${s.lng}, ${s.lat}], content: '<div style="padding:4px 8px;background:#FF6B35;color:white;border-radius:12px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);">📍 ${s.name}</div>' }
   `).join(',');
 
   const html = `<!DOCTYPE html>
@@ -264,11 +453,26 @@ app.get('/api/map/stores', (req, res) => {
 </head><body><div id="m"></div>
 <script>
 var map = new AMap.Map('m', { zoom: 11, center: [${avgLng}, ${avgLat}], viewMode: '3D', pitch: 30 });
+var selectMode = ${selectMode ? 'true' : 'false'};
 var markers = [${markers}];
 markers.forEach(function(m){
-  var mk = new AMap.Marker({ position: m.position, content: m.content, offset: new AMap.Pixel(-40, -15) });
+  var mk = new AMap.Marker({ position: m.position, content: m.content, offset: new AMap.Pixel(-40, -15), cursor: 'pointer' });
+  // 点击门店标签：通知 HarmonyOS 端（选择模式用于下单时选址）
+  mk.on('click', function(){
+    if (window.ohosBridge && window.ohosBridge.onStoreSelect) {
+      window.ohosBridge.onStoreSelect(m.id);
+    }
+    if (selectMode) {
+      mk.setContent('<div style="padding:4px 10px;background:#1A1A1A;color:white;border-radius:12px;font-size:12px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.3);">✓ ' + m.name + '</div>');
+      mk.setOffset(new AMap.Pixel(-40, -15));
+    }
+  });
   map.add(mk);
 });
+${selectMode ? `var tip = document.createElement('div');
+tip.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.68);color:#fff;padding:7px 14px;border-radius:16px;font-size:12px;z-index:99;white-space:nowrap;';
+tip.textContent = '点击地图上的门店标签即可选中';
+document.body.appendChild(tip);` : ''}
 if (markers.length > 0) {
   map.setFitView();
 }
@@ -290,15 +494,7 @@ app.get('/api/cars', (req, res) => {
   res.json({ code: 1, data: data.cars });
 });
 
-// 获取单个车辆
-app.get('/api/cars/:id', (req, res) => {
-  const data = loadData();
-  const car = data.cars.find(c => c.id === req.params.id);
-  if (car) res.json({ code: 1, data: car });
-  else res.json({ code: 0, message: '车辆不存在' });
-});
-
-// 搜索车辆
+// 搜索车辆（必须注册在 /api/cars/:id 之前，否则 search 会被当成 id 匹配）
 app.get('/api/cars/search', (req, res) => {
   const data = loadData();
   const keyword = (req.query.q || '').toLowerCase();
@@ -308,10 +504,12 @@ app.get('/api/cars/search', (req, res) => {
   res.json({ code: 1, data: results });
 });
 
-// 获取门店列表
-app.get('/api/stores', (req, res) => {
+// 获取单个车辆
+app.get('/api/cars/:id', (req, res) => {
   const data = loadData();
-  res.json({ code: 1, data: data.stores });
+  const car = data.cars.find(c => c.id === req.params.id);
+  if (car) res.json({ code: 1, data: car });
+  else res.json({ code: 0, message: '车辆不存在' });
 });
 
 // 获取订单列表
@@ -333,19 +531,95 @@ app.get('/api/orders/:id', (req, res) => {
   else res.json({ code: 0, message: '订单不存在' });
 });
 
-// 获取用户信息
-app.get('/api/user', (req, res) => {
+// ===== 注册 / 登录 / 当前用户 =====
+
+// 注册：手机号 + 验证码 + 密码，账号信息落库到 data.json 的 users
+app.post('/api/register', (req, res) => {
+  const { phone, code, password, name } = req.body || {};
+  if (!/^1[3-9]\d{9}$/.test(phone || '')) return res.json({ code: 0, message: '请输入正确的 11 位手机号' });
+  if (code !== SMS_CODE) return res.json({ code: 0, message: '验证码错误（演示验证码 ' + SMS_CODE + '）' });
+  if (!password || password.length < 6 || password.length > 20) return res.json({ code: 0, message: '密码需为 6-20 位' });
   const data = loadData();
-  res.json({ code: 1, data: data.user });
+  if (data.users.some((u) => u.phone === phone)) {
+    return res.json({ code: 0, message: '该手机号已注册，请直接登录' });
+  }
+  const user = createUser(data, phone, password, name);
+  const token = issueToken(data, user.id);
+  saveData(data);
+  res.json({ code: 1, data: { token, user: publicUser(user) }, message: '注册成功' });
 });
 
-// 登录（简单模拟）
+// 登录：传 password 走密码登录；传 code 走验证码登录（未注册手机号自动创建账号）
 app.post('/api/login', (req, res) => {
-  const { phone, code } = req.body || {};
-  if (!phone) return res.json({ code: 0, message: '请输入手机号' });
-  if (code !== '1234') return res.json({ code: 0, message: '验证码错误' });
+  const { phone, code, password } = req.body || {};
+  if (!/^1[3-9]\d{9}$/.test(phone || '')) return res.json({ code: 0, message: '请输入正确的 11 位手机号' });
   const data = loadData();
-  res.json({ code: 1, data: { token: 'mock_token_' + Date.now(), user: data.user } });
+  let user = data.users.find((u) => u.phone === phone);
+
+  if (password) {
+    if (!user) return res.json({ code: 0, message: '该手机号未注册，请先注册' });
+    if (!verifyPassword(password, user.password)) return res.json({ code: 0, message: '手机号或密码错误' });
+  } else {
+    if (code !== SMS_CODE) return res.json({ code: 0, message: '验证码错误（演示验证码 ' + SMS_CODE + '）' });
+    if (!user) {
+      user = createUser(data, phone, '123456', '');
+    }
+  }
+
+  user.lastLoginAt = new Date().toISOString();
+  const token = issueToken(data, user.id);
+  saveData(data);
+  res.json({ code: 1, data: { token, user: publicUser(user) }, message: '登录成功' });
+});
+
+// 退出登录：销毁当前 token
+app.post('/api/logout', (req, res) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const data = loadData();
+  const before = (data.sessions || []).length;
+  data.sessions = (data.sessions || []).filter((s) => s.token !== token);
+  if (data.sessions.length !== before) saveData(data);
+  res.json({ code: 1, message: '已退出登录' });
+});
+
+// 获取当前登录用户信息
+app.get('/api/user', (req, res) => {
+  const auth = authUser(req);
+  if (!auth) return res.status(401).json({ code: 0, message: '未登录或登录已失效' });
+  res.json({ code: 1, data: publicUser(auth.user) });
+});
+
+// 上传头像：客户端把图片转成 base64 后提交，服务端解码落盘并更新用户
+app.post('/api/user/avatar', (req, res) => {
+  const auth = authUser(req);
+  if (!auth) return res.status(401).json({ code: 0, message: '未登录或登录已失效' });
+  const { base64, ext } = req.body || {};
+  if (!base64) return res.json({ code: 0, message: '请选择图片' });
+  const suffix = String(ext || 'jpg').toLowerCase().replace('.', '');
+  if (['jpg', 'jpeg', 'png', 'webp'].indexOf(suffix) === -1) {
+    return res.json({ code: 0, message: '只支持 jpg/png/webp 格式' });
+  }
+  const buf = Buffer.from(base64, 'base64');
+  if (!buf.length) return res.json({ code: 0, message: '图片解析失败' });
+  if (buf.length > 2 * 1024 * 1024) return res.json({ code: 0, message: '头像不能超过 2MB' });
+
+  const filename = 'avatar_' + auth.user.id + '_' + Date.now() + '.' + suffix;
+  fs.writeFileSync(path.join(UPLOAD_DIR, filename), buf);
+
+  // 删除该用户上一张头像文件，避免 uploads 目录越堆越多
+  const oldAvatar = auth.user.avatar || '';
+  if (oldAvatar.startsWith('/uploads/avatar_')) {
+    try {
+      fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(oldAvatar)));
+    } catch (e) {
+      // 旧文件不存在时忽略
+    }
+  }
+
+  auth.user.avatar = '/uploads/' + filename;
+  saveData(auth.data);
+  res.json({ code: 1, data: publicUser(auth.user), message: '头像已更新' });
 });
 
 // 获取优惠券
@@ -354,27 +628,44 @@ app.get('/api/coupons', (req, res) => {
   res.json({ code: 1, data: data.coupons });
 });
 
-// 创建订单
+// 创建订单（下单成功即落库，状态为待支付）
 app.post('/api/orders', (req, res) => {
   const data = loadData();
-  const { carId, days, pickupStore } = req.body || {};
+  const { carId, days, pickupStore, returnStore, pickupTime, returnTime, discount, insurance } = req.body || {};
   const car = data.cars.find(c => c.id === carId);
   if (!car) return res.json({ code: 0, message: '车辆不存在' });
+  const rentDays = Number(days) || 3;
   const order = {
-    id: 'order' + Date.now(),
-    orderNo: 'HC' + Date.now(),
+    id: uniqueCode(data.orders, 'id', 'order'),
+    orderNo: uniqueCode(data.orders, 'orderNo', 'HC'),
     carName: car.name,
     carImage: car.imageUrl,
     pickupStore: pickupStore || '浦东机场 T2 航站楼店',
-    returnStore: pickupStore || '浦东机场 T2 航站楼店',
-    pickupTime: new Date().toLocaleString(),
-    returnTime: new Date(Date.now() + (days || 3) * 86400000).toLocaleString(),
-    days: days || 3,
-    totalPrice: car.pricePerDay * (days || 3),
-    status: 'CONFIRMED',
+    returnStore: returnStore || pickupStore || '浦东机场 T2 航站楼店',
+    pickupTime: pickupTime || new Date().toLocaleString(),
+    returnTime: returnTime || new Date(Date.now() + rentDays * 86400000).toLocaleString(),
+    days: rentDays,
+    totalPrice: car.pricePerDay * rentDays,
+    discount: Number(discount) || 0,
+    insurance: Number(insurance) || 0,
+    status: 'PENDING',
     createTime: new Date().toLocaleString()
   };
   data.orders.unshift(order);
+  saveData(data);
+  res.json({ code: 1, data: order });
+});
+
+// 更新订单状态（支付、取车、还车、结算等环节调用）
+app.post('/api/orders/:id/status', (req, res) => {
+  const data = loadData();
+  const order = data.orders.find(o => o.id === req.params.id);
+  if (!order) return res.json({ code: 0, message: '订单不存在' });
+  const status = String((req.body || {}).status || '').toUpperCase();
+  const allowed = ['PENDING', 'CONFIRMED', 'PICKED_UP', 'IN_USE', 'RETURNED', 'COMPLETED', 'CANCELLED'];
+  if (allowed.indexOf(status) === -1) return res.json({ code: 0, message: '订单状态不合法' });
+  order.status = status;
+  order.updateTime = new Date().toLocaleString();
   saveData(data);
   res.json({ code: 1, data: order });
 });
@@ -427,7 +718,7 @@ app.post('/api/admin/cars', (req, res) => {
   const data = loadData();
   const body = req.body || {};
   const newCar = {
-    id: 'car' + String(data.cars.length + 1).padStart(3, '0'),
+    id: nextSeqCode(data.cars, 'car', /^car(\d+)$/),
     name: body.name || '',
     brand: body.brand || '',
     imageUrl: body.imageUrl || '🚗',
@@ -507,7 +798,7 @@ async function enrichStoreGeo(store) {
 }
 
 // 新增门店（自动解析经纬度）
-app.post('/api/admin/stores', async (req, res) => {
+app.post('/api/admin/stores', wrapAsync(async (req, res) => {
   const data = loadData();
   const body = req.body || {};
   let newStore = {
@@ -526,10 +817,10 @@ app.post('/api/admin/stores', async (req, res) => {
   data.stores.push(newStore);
   saveData(data);
   res.json({ code: 1, data: newStore, message: '新增成功' });
-});
+}));
 
 // 更新门店（自动解析经纬度）
-app.put('/api/admin/stores/:id', async (req, res) => {
+app.put('/api/admin/stores/:id', wrapAsync(async (req, res) => {
   const data = loadData();
   const idx = data.stores.findIndex(s => s.id === req.params.id);
   if (idx === -1) return res.json({ code: 0, message: '门店不存在' });
@@ -545,7 +836,7 @@ app.put('/api/admin/stores/:id', async (req, res) => {
   data.stores[idx] = merged;
   saveData(data);
   res.json({ code: 1, data: data.stores[idx], message: '更新成功' });
-});
+}));
 
 // 删除门店
 app.delete('/api/admin/stores/:id', (req, res) => {
@@ -590,17 +881,21 @@ app.delete('/api/admin/orders/:id', (req, res) => {
 
 // ===== 用户管理 =====
 
-// 获取用户列表（mock，暂时返回现有用户）
+// 获取用户列表（真实注册用户，不返回密码）
 app.get('/api/admin/users', (req, res) => {
   const data = loadData();
-  // mock 用户列表
-  const users = [
-    data.user,
-    { id: 'user002', name: '李四', phone: '139****6666', avatar: '👤', memberLevel: '白银会员', memberExpire: '2026-12-31', points: 580, verified: true },
-    { id: 'user003', name: '王五', phone: '137****9999', avatar: '👤', memberLevel: '钻石会员', memberExpire: '2027-06-30', points: 5200, verified: true },
-    { id: 'user004', name: '赵六', phone: '136****7777', avatar: '👤', memberLevel: '普通会员', memberExpire: '-', points: 120, verified: false },
-    { id: 'user005', name: '孙七', phone: '135****5555', avatar: '👤', memberLevel: '黄金会员', memberExpire: '2026-11-30', points: 1580, verified: true }
-  ];
+  const users = (data.users || []).map((u) => ({
+    id: u.id,
+    name: u.name,
+    phone: u.phone,
+    avatar: u.avatar || '',
+    memberLevel: u.memberLevel || '普通会员',
+    memberExpire: u.memberExpire || '',
+    points: u.points || 0,
+    verified: !!u.verified,
+    createdAt: u.createdAt || '',
+    lastLoginAt: u.lastLoginAt || ''
+  }));
   res.json({ code: 1, data: users });
 });
 
@@ -617,7 +912,7 @@ app.post('/api/admin/coupons', (req, res) => {
   const data = loadData();
   const body = req.body || {};
   const newCoupon = {
-    id: 'cp' + String((data.coupons?.length || 0) + 1).padStart(3, '0'),
+    id: nextSeqCode(data.coupons, 'cp', /^cp(\d+)$/),
     name: body.name || '',
     discount: Number(body.discount) || 0,
     threshold: Number(body.threshold) || 0,
@@ -667,7 +962,7 @@ function loadAIConfig() {
 }
 
 function saveAIConfig(cfg) {
-  fs.writeFileSync(AI_CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf-8');
+  writeJsonAtomic(AI_CONFIG_FILE, cfg);
 }
 
 // ===== 后台：读写 AI 配置 =====
@@ -753,7 +1048,35 @@ app.post('/api/ai/chat', async (req, res) => {
 app.use('/uploads', express.static(UPLOAD_DIR));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
+// ===== 统一错误处理 =====
+// 兜住未匹配的路由与所有路由抛出的异常，统一返回 JSON，不再把堆栈直接吐给前端
+app.use((req, res) => {
+  res.status(404).json({ code: 0, message: '接口不存在: ' + req.method + ' ' + req.originalUrl });
+});
+
+app.use((err, req, res, next) => {
+  console.error('[api error]', req.method, req.originalUrl, err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  const isUploadError = err && (err.code === 'LIMIT_FILE_SIZE' || err.message === '只支持图片格式 (jpg/png/gif/webp)');
+  res.status(isUploadError ? 400 : 500).json({
+    code: 0,
+    message: isUploadError ? (err.message || '图片超过 5MB 限制') : '服务器内部错误'
+  });
+});
+
+// 进程级兜底：记录但不退出，保证演示时单个异常不会让整个后端挂掉
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err && err.stack ? err.stack : err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[unhandledRejection]', err && err.stack ? err.stack : err);
+});
+
 // ===== 启动 =====
+// 启动前先加载一次数据，data.json 损坏时立刻报错，而不是拖到第一个请求
+loadData();
+migrateUsers();
+
 app.listen(PORT, '0.0.0.0', () => {
   const net = require('os').networkInterfaces();
   console.log('=================================');

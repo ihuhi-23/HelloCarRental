@@ -1,5 +1,8 @@
 /**
- * 底部标签栏组件
+ * TabBar 底部标签栏组件
+ * 用途：4 个 tab（首页/订单/客服/我的），点击后通过父组件回调 onTabChange 切换页面
+ * props：currentIndex 当前选中下标；onTabChange(index) 父页面的切换回调
+ * 使用页面：Index、MyOrders、PersonalCenter、AIChat、InUse（各页面自行 switchTab）
  */
 @Component
 export struct TabBar {
@@ -7,6 +10,7 @@ export struct TabBar {
   onTabChange: (index: number) => void = () => {};
 
   build() {
+    // ===== 四个 tab：点击回调 onTabChange(index)，由父页面决定跳转 =====
     Row() {
       Column() {
         Text('🏠').fontSize(24).opacity(this.currentIndex === 0 ? 1 : 0.6)

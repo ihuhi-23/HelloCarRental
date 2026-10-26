@@ -1,11 +1,17 @@
 ﻿import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { NavBar } from '../common/NavBar';
-import { OrderInfo } from '../common/Interfaces';
-import { fetchOrderDetail, fetchOrders, fetchStores } from '../common/HttpUtil';
+import { OrderInfo, InfoRow } from '../common/Interfaces';
+import { fetchOrderDetail, fetchOrders, fetchStores, updateOrderStatus } from '../common/HttpUtil';
 
 /**
- * 页面 16：还车确认
- * 数据来源：后端 /api/orders/:id + /api/stores
+ * 页面：还车确认
+ * 分工：成员三 · 简单页面
+ * 入口：用车中「我要还车」
+ * 功能：确认还车门店、还车时间、车辆损伤、协议勾选
+ * 容器：Scroll（整页内容）、List（还车信息）
+ * 关键状态：selectedStore、selectedTime、hasDamage、agree（协议勾选）
+ * 关键方法：loadData() 调用 HttpUtil.fetchOrderDetail()/fetchOrders()/fetchStores()、goFee() 调用 HttpUtil.updateOrderStatus() 后跳转 FeeSettlement
  */
 @Entry
 @Component
@@ -18,10 +24,12 @@ struct ReturnConfirm {
   @State storeNames: string[] = [];
   @State isLoading: boolean = true;
 
+  // 作用：页面加载时获取订单和门店列表
   aboutToAppear() {
     this.loadData();
   }
 
+  // 作用：读取订单与门店，初始化还车门店和还车时间
   private async loadData() {
     try {
       const params = router.getParams() as Record<string, string>;
@@ -52,18 +60,42 @@ struct ReturnConfirm {
 
   private times: string[] = ['2026-10-23 10:00', '2026-10-23 14:00', '2026-10-23 18:00', '2026-10-24 10:00'];
 
+  // 作用：组装还车信息行，供 List 渲染
+  private getInfoRows(): InfoRow[] {
+    const info: OrderInfo | null = this.order;
+    if (!info) return [];
+    const rows: InfoRow[] = [
+      { label: '取车门店', value: info.pickupStore },
+      { label: '还车门店', value: this.selectedStore || info.returnStore },
+      { label: '取车时间', value: info.pickupTime },
+      { label: '还车时间', value: this.selectedTime || info.returnTime },
+      { label: '租车天数', value: info.days + '天' },
+      { label: '订单金额', value: '¥' + info.totalPrice }
+    ];
+    return rows;
+  }
+
+  // 作用：调用 HttpUtil.updateOrderStatus() 标记已还车，再跳转 FeeSettlement
   private goFee() {
-    if (this.order) {
-      router.pushUrl({ url: 'pages/FeeSettlement', params: { orderId: this.order.id } });
-    } else {
-      router.pushUrl({ url: 'pages/FeeSettlement' });
+    if (!this.order) {
+      promptAction.showToast({ message: '订单信息加载失败，请稍后重试' });
+      return;
     }
+    // 确认还车后先把订单状态改为已还车，再进入费用结算
+    updateOrderStatus(this.order.id, 'RETURNED').then((ok: boolean) => {
+      if (!ok) {
+        promptAction.showToast({ message: '还车状态更新失败，请检查后端服务' });
+        return;
+      }
+      router.pushUrl({ url: 'pages/FeeSettlement', params: { orderId: this.order?.id || '' } });
+    });
   }
 
   build() {
     Column() {
       NavBar({ title: '还车确认', onBack: (): void => { router.back(); }, rightText: '', onRightClick: (): void => {} })
 
+      // ===== 加载中占位 =====
       if (this.isLoading || !this.order) {
         Column() {
           Text('⏳').fontSize(48)
@@ -72,7 +104,9 @@ struct ReturnConfirm {
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
         Scroll() {
+          // ===== 主内容区：Scroll 纵向滚动 =====
           Column() {
+            // ===== 车辆卡片 =====
             Column() {
               Row() {
                 Image(this.order.carImage).width(64).height(64).objectFit(ImageFit.Cover).borderRadius(10)
@@ -85,6 +119,28 @@ struct ReturnConfirm {
             }
             .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+            // ===== 还车信息 =====
+            Column() {
+              Text('还车信息').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).margin({ bottom: 8 })
+              // 还车信息列表：List + ForEach 渲染 InfoRow
+              List() {
+                ForEach(this.getInfoRows(), (row: InfoRow) => {
+                  ListItem() {
+                    Row() {
+                      Text(row.label).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_secondary')).width(80)
+                      Text(row.value).fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_primary')).layoutWeight(1)
+                    }
+                    .width('100%').padding({ top: 8, bottom: 8 })
+                  }
+                }, (row: InfoRow): string => row.label)
+              }
+              .width('100%').scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.None)
+              .nestedScroll({ scrollForward: NestedScrollMode.PARENT_FIRST, scrollBackward: NestedScrollMode.PARENT_FIRST })
+            }
+            .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
+
+            // ===== 选择还车门店 =====
             Column() {
               Text('选择还车门店').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).margin({ bottom: 12 })
               ForEach(this.storeNames, (s: string) => {
@@ -99,6 +155,7 @@ struct ReturnConfirm {
             }
             .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+            // ===== 选择还车时间 =====
             Column() {
               Text('选择还车时间').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).margin({ bottom: 12 })
               Flex({ wrap: FlexWrap.Wrap }) {
@@ -115,6 +172,7 @@ struct ReturnConfirm {
             }
             .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+            // ===== 车辆损伤选项 =====
             Row() {
               Column() {
                 Text('车辆是否有损伤？').fontSize($r('app.float.font_size_body')).fontColor($r('app.color.text_primary'))
@@ -124,6 +182,7 @@ struct ReturnConfirm {
             }
             .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+            // ===== 还车协议勾选 =====
             Row() {
               Checkbox().width(16).height(16).onChange((v: boolean) => this.agree = v)
               Text('我已阅读并同意').fontSize($r('app.float.font_size_small')).fontColor($r('app.color.text_secondary')).margin({ left: 6 })
@@ -133,8 +192,9 @@ struct ReturnConfirm {
           }
           .padding(16).padding({ bottom: 100 })
         }
-        .layoutWeight(1).scrollBar(BarState.Off)
+        .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
 
+        // ===== 底部确认还车按钮 =====
         Button() {
           Text('确认还车').fontSize($r('app.float.font_size_body')).fontColor(Color.White).fontWeight(FontWeight.Medium)
         }

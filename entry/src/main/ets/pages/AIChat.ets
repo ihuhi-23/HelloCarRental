@@ -6,9 +6,13 @@ import { NavBar } from '../common/NavBar';
 import { TabBar } from '../common/TabBar';
 
 /**
- * 页面 13：AI 智能客服
- * 数据来源：后端 /api/ai/chat（DeepSeek API）
- * 特性：对话持久化（Preferences）、自动滚到底部、Markdown 轻量渲染
+ * 页面：AIChat AI 智能客服
+ * 分工：成员五 · 复杂页面
+ * 入口：底部 TabBar「客服」
+ * 功能：消息列表、Markdown 渲染、快捷提问、发送消息
+ * 容器：Grid（快捷提问两列）、Scroll（消息列表）
+ * 关键状态：messages（对话记录）、isSending（发送中）
+ * 关键方法：sendMessage() 调用后端 AI 接口、loadHistory() 恢复历史记录
  */
 
 // 单条消息
@@ -26,12 +30,13 @@ interface MdSeg {
   isDivider: boolean;    // --- 分隔线
 }
 
-const BASE_URL = 'http://10.232.0.1:3000';
+const BASE_URL = 'https://car.ihuhi.xyz';
 const STORE_NAME = 'ai_chat_store';
 const KEY_HISTORY = 'ai_history';
 
 // ============ 轻量 Markdown 解析器 ============
 // 只处理 AI 客服回复里常见的格式，够用就行
+// 作用：解析 AI 回复中的标题、列表、加粗、分隔线
 function parseMarkdown(text: string): MdSeg[] {
   if (!text) return [];
   const segs: MdSeg[] = [];
@@ -89,6 +94,7 @@ function parseMarkdown(text: string): MdSeg[] {
 
 // ============ Preferences 持久化（在组件内部调用 getContext）============
 
+// 作用：把对话记录写入 Preferences
 async function saveHistory(prefs: preferences.Preferences, list: ChatMsg[]): Promise<void> {
   try {
     await prefs.put(KEY_HISTORY, JSON.stringify(list));
@@ -98,6 +104,7 @@ async function saveHistory(prefs: preferences.Preferences, list: ChatMsg[]): Pro
   }
 }
 
+// 作用：从 Preferences 读取历史对话
 async function loadHistory(prefs: preferences.Preferences): Promise<ChatMsg[]> {
   try {
     let raw = await prefs.get(KEY_HISTORY, '') as string;
@@ -128,6 +135,7 @@ struct AIChat {
   private scrollController: Scroller = new Scroller();
   private prefs: preferences.Preferences | null = null;
 
+  // 作用：初始化 Preferences，恢复历史消息并滚到底部
   aboutToAppear() {
     // 在组件内部初始化 Preferences（ArkTS 要求 getContext 在 UIAbilityContext 中调用）
     let context = getContext(this) as common.UIAbilityContext;
@@ -150,6 +158,7 @@ struct AIChat {
     });
   }
 
+  // 作用：保存当前消息列表并自动滚动到底部
   private persistMessages() {
     if (this.prefs) {
       saveHistory(this.prefs, this.messages);
@@ -160,6 +169,7 @@ struct AIChat {
     }, 30);
   }
 
+  // 作用：底部 Tab 切换，非本页时 replaceUrl 到目标页
   private switchTab(index: number) {
     this.currentTab = index;
     const pages: string[] = ['pages/Index', 'pages/MyOrders', 'pages/AIChat', 'pages/PersonalCenter'];
@@ -167,6 +177,7 @@ struct AIChat {
   }
 
   // 清空对话
+  // 作用：重置消息列表并写入 Preferences
   private clearChat() {
     this.messages = [
       { role: 'assistant', content: '对话已清空 ✅\n您好！我是哈喽租车 AI 客服小哈 🚗，有什么可以帮您的？' }
@@ -174,6 +185,7 @@ struct AIChat {
     this.persistMessages();
   }
 
+  // 作用：发送用户消息，调用后端 /api/ai/chat（http.request），追加 AI 回复
   private async sendMessage() {
     let text = this.inputText.trim();
     if (!text || this.isSending) return;
@@ -222,11 +234,13 @@ struct AIChat {
     }
   }
 
+  // 作用：点击快捷问题，填入输入框并立即发送
   private quickAsk(q: string) {
     this.inputText = q;
     this.sendMessage();
   }
 
+  // 作用：判断消息是否为用户发送
   private isUser(m: ChatMsg): boolean { return m.role === 'user'; }
 
   build() {
@@ -240,6 +254,7 @@ struct AIChat {
       })
 
       // 消息列表（带自动滚到底）
+      // 消息列表：Scroll + Column + ForEach 渲染对话
       Scroll(this.scrollController) {
         Column() {
           ForEach(this.messages, (msg: ChatMsg) => {
@@ -258,55 +273,83 @@ struct AIChat {
           // 底部占位（确保最后一条消息能滚到顶部）
           Column().width('100%').height(4);
         }
-        .padding(12)
+        .padding({ left: 16, right: 16, top: 8, bottom: 12 })
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
+      .align(Alignment.Top)
 
+      // ===== 快捷提问区（首屏空对话时显示） =====
       // 快捷问题（首屏空对话时显示）
-      if (this.messages.length <= 1) {
-        Flex({ wrap: FlexWrap.Wrap }) {
-          ForEach(this.quickQuestions, (q: string) => {
-            Text(q)
-              .fontSize(12)
-              .fontColor($r('app.color.primary_orange'))
-              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-              .backgroundColor(Color.White)
-              .borderRadius(14)
-              .margin({ right: 8, bottom: 8 })
-              .onClick(() => this.quickAsk(q))
-          }, (q: string) => q)
+      if (this.messages.length <= 1 && !this.isSending) {
+        Column() {
+          Text('猜你想问')
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+            .fontWeight(FontWeight.Medium)
+            .margin({ bottom: 8 })
+          // 快捷提问两列：Grid + GridItem
+          Grid() {
+            ForEach(this.quickQuestions, (q: string) => {
+              GridItem() {
+                Text(q)
+                  .width('100%')
+                  .fontSize(12)
+                  .fontColor($r('app.color.primary_orange'))
+                  .padding({ left: 12, right: 12, top: 7, bottom: 7 })
+                  .backgroundColor($r('app.color.primary_orange_light'))
+                  .borderRadius(16)
+                  .border({ width: 1, color: '#FFDCC4' })
+                  .onClick(() => this.quickAsk(q))
+              }
+            }, (q: string): string => q)
+          }
+          .width('100%')
+          .columnsTemplate('1fr 1fr')
+          .columnsGap(8)
+          .rowsGap(8)
         }
         .width('100%')
-        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 16, right: 16, bottom: 4 })
       }
 
-      // 输入栏
+      // ===== 输入栏（白色胶囊卡片） =====
+      // 输入栏（白色胶囊卡片）
       Row() {
-        TextInput({ placeholder: '输入消息...', text: this.inputText })
+        TextInput({ placeholder: '有问题尽管问我…', text: this.inputText })
           .layoutWeight(1)
           .height(40)
-          .backgroundColor(Color.White)
-          .borderRadius(20)
-          .padding({ left: 12, right: 12 })
+          .backgroundColor(Color.Transparent)
+          .padding({ left: 14, right: 8 })
           .fontSize($r('app.float.font_size_body'))
+          .placeholderColor($r('app.color.text_hint'))
           .onChange((v: string) => this.inputText = v)
           .enabled(!this.isSending)
 
         Button() {
-          Text(this.isSending ? '发送中...' : '发送').fontSize(14).fontColor(Color.White)
+          Text('↑')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
         }
-        .height(40)
-        .backgroundColor(this.inputText.trim() ? $r('app.color.primary_orange') : '#FFBD9B')
-        .borderRadius(20)
-        .margin({ left: 8 })
+        .width(36)
+        .height(36)
+        .backgroundColor(this.inputText.trim() && !this.isSending ? $r('app.color.primary_orange') : '#FFC9A8')
+        .borderRadius(18)
+        .margin({ right: 4 })
         .enabled(!!this.inputText.trim() && !this.isSending)
         .onClick(() => this.sendMessage())
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.bg_page'))
+      .padding({ left: 6, right: 6, top: 6, bottom: 6 })
+      .backgroundColor(Color.White)
+      .borderRadius(24)
+      .margin({ left: 16, right: 16, top: 4, bottom: 10 })
+      .shadow({ radius: 10, color: '#0A000000', offsetX: 0, offsetY: 2 })
 
+      // 底部 TabBar
       TabBar({ currentIndex: this.currentTab, onTabChange: (i: number): void => this.switchTab(i) })
     }
     .width('100%').height('100%').backgroundColor($r('app.color.bg_page'))
@@ -314,6 +357,22 @@ struct AIChat {
 
   // ============ 气泡 Builder ============
 
+  // AI 头像（橙底白字，统一标识，不随消息重复文字标签）
+  // 作用：AI 头像展示
+  @Builder
+  AIAvatar() {
+    Column() {
+      Text('哈').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+    }
+    .width(32).height(32)
+    .borderRadius(16)
+    .linearGradient({ angle: 180, colors: [['#FF9A55', 0], ['#FF6B00', 1]] })
+    .justifyContent(FlexAlign.Center)
+    .margin({ right: 10 })
+    .alignSelf(ItemAlign.Start)
+  }
+
+  // 作用：用户消息气泡（右侧橙色）
   @Builder
   UserBubble(msg: ChatMsg) {
     Row() {
@@ -321,83 +380,85 @@ struct AIChat {
       Text(msg.content)
         .fontSize($r('app.float.font_size_body'))
         .fontColor(Color.White)
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-        .backgroundColor($r('app.color.primary_orange'))
-        .borderRadius({ topLeft: 14, topRight: 14, bottomLeft: 14, bottomRight: 4 })
-        .maxLines(50)
-        .width('75%')
-        .textAlign(TextAlign.End)
+        .lineHeight(21)
+        .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+        .linearGradient({ angle: 180, colors: [['#FF9A55', 0], ['#FF6B00', 1]] })
+        .borderRadius({ topLeft: 16, topRight: 4, bottomLeft: 16, bottomRight: 16 })
+        .constraintSize({ maxWidth: '76%' })
+        .shadow({ radius: 10, color: '#1AFF6B00', offsetX: 0, offsetY: 3 });
     }
     .width('100%')
-    .margin({ top: 8 });
+    .margin({ top: 12 });
   }
 
+  // 作用：AI 消息气泡，按 Markdown 片段渲染
   @Builder
   AIBubble(msg: ChatMsg) {
     Row() {
-      Column() {
-        // 头像标识
-        Row() {
-          Text('🤖').fontSize(14).margin({ right: 6 });
-          Text('小哈').fontSize(11).fontColor($r('app.color.text_secondary'));
-        }
-        .margin({ bottom: 6 });
+      this.AIAvatar();
 
-        // Markdown 渲染
-        Column() {
-          ForEach(parseMarkdown(msg.content), (seg: MdSeg, idx: number) => {
-            if (seg.isDivider) {
-              Column()
-                .width('100%')
-                .height(1)
-                .backgroundColor($r('app.color.divider'))
-                .margin({ top: 6, bottom: 6 });
-            } else if (seg.text === '') {
-              Column().width('100%').height(8);
-            } else if (seg.isHeader) {
-              Text(seg.text)
-                .fontSize(16)
-                .fontWeight(FontWeight.Bold)
-                .fontColor($r('app.color.text_primary'))
-                .margin({ top: 4 });
-            } else {
-              Text(seg.text)
-                .fontSize($r('app.float.font_size_body'))
-                .fontColor($r('app.color.text_primary'))
-                .fontWeight(seg.bold ? FontWeight.Bold : FontWeight.Normal)
-                .margin({ top: 2 })
-                .width('100%');
-            }
-          }, (seg: MdSeg, idx: number) => idx + '_' + seg.text);
-        }
-        .width('100%');
+      Column() {
+        // Markdown 片段渲染：ForEach(parseMarkdown(...))
+        ForEach(parseMarkdown(msg.content), (seg: MdSeg, idx: number) => {
+          if (seg.isDivider) {
+            Column()
+              .width('100%')
+              .height(1)
+              .backgroundColor($r('app.color.divider'))
+              .margin({ top: 8, bottom: 8 });
+          } else if (seg.text === '') {
+            Column().width('100%').height(6);
+          } else if (seg.isHeader) {
+            Text(seg.text)
+              .fontSize(15)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+              .lineHeight(22)
+              .margin({ top: 6, bottom: 2 });
+          } else {
+            Text(seg.text)
+              .fontSize($r('app.float.font_size_body'))
+              .fontColor($r('app.color.text_primary'))
+              .lineHeight(21)
+              .fontWeight(seg.bold ? FontWeight.Bold : FontWeight.Normal)
+              .margin({ top: 2 });
+          }
+        }, (seg: MdSeg, idx: number) => idx + '_' + seg.text);
       }
       .alignItems(HorizontalAlign.Start)
-      .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+      .padding({ left: 14, right: 14, top: 12, bottom: 12 })
       .backgroundColor(Color.White)
-      .borderRadius({ topLeft: 14, topRight: 14, bottomLeft: 4, bottomRight: 14 })
-      .width('85%');
+      .borderRadius({ topLeft: 4, topRight: 16, bottomLeft: 16, bottomRight: 16 })
+      .constraintSize({ maxWidth: '78%' })
+      .shadow({ radius: 10, color: '#0A000000', offsetX: 0, offsetY: 2 });
     }
     .width('100%')
-    .margin({ top: 8 });
+    .alignItems(VerticalAlign.Top)
+    .margin({ top: 12 });
   }
 
+  // 作用：AI 正在输入提示气泡
   @Builder
   LoadingBubble() {
     Row() {
-      Column() {
-        Row() {
-          Column().width(6).height(6).backgroundColor($r('app.color.text_secondary')).borderRadius(3).margin({ right: 3 });
-          Column().width(6).height(6).backgroundColor($r('app.color.text_secondary')).borderRadius(3).margin({ right: 3 });
-          Column().width(6).height(6).backgroundColor($r('app.color.text_secondary')).borderRadius(3);
-        }
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-        .backgroundColor(Color.White)
-        .borderRadius({ topLeft: 14, topRight: 14, bottomLeft: 4, bottomRight: 14 });
+      this.AIAvatar();
+
+      Row() {
+        LoadingProgress()
+          .width(18).height(18)
+          .color($r('app.color.primary_orange'))
+        Text('小哈正在输入…')
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ left: 8 })
       }
-      .alignItems(HorizontalAlign.Start);
+      .padding({ left: 12, right: 14, top: 10, bottom: 10 })
+      .backgroundColor(Color.White)
+      .borderRadius({ topLeft: 4, topRight: 16, bottomLeft: 16, bottomRight: 16 })
+      .shadow({ radius: 10, color: '#0A000000', offsetX: 0, offsetY: 2 });
     }
     .width('100%')
-    .margin({ top: 8 });
+    .alignItems(VerticalAlign.Top)
+    .margin({ top: 12 });
   }
 }

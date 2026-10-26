@@ -1,13 +1,19 @@
 import router from '@ohos.router';
 import { NavBar } from '../common/NavBar';
 import { TabBar } from '../common/TabBar';
+import { SwiperBanner } from '../common/SwiperBanner';
 import { CarInfo } from '../common/Interfaces';
 import { fetchHomeCars } from '../common/HttpUtil';
 
 /**
- * 页面 1：车辆列表 - 首页
- * 【复杂页面】包含搜索、筛选、车辆卡片列表、门店选择
- * 数据来源：后端 /api/cars（HttpUtil.fetchHomeCars）
+ * 页面：Index 车辆列表（首页）
+ * 分工：成员一 · 复杂页面
+ * 入口：应用启动首页 / 底部 TabBar「首页」
+ * 功能：轮播、品牌宫格、门店行、搜索框、车辆列表
+ * 容器：Grid（品牌宫格）、ForEach（车辆列表）、Swiper（SwiperBanner 组件内部）
+ * 关键状态：carList（车辆数据）、searchText（搜索关键字）、currentTab（底部 Tab 索引）
+ * 关键方法：loadRealCars() 调用 HttpUtil.fetchHomeCars() 拉取后端数据、goConfirm() 进入确认订单
+ * 数据来源：后端 /api/cars
  */
 @Entry
 @Component
@@ -18,15 +24,15 @@ struct Index {
   @State carList: CarInfo[] = [];
   @State isLoading: boolean = true;
 
-  // Swiper Banner 数据
-  private banners: string[] = ['🎉 新用户首单立减 ¥200', '🚗 奥迪 A6L 租 3 天送 1 天', '⚡ 特斯拉 Model 3 低至 ¥299/天'];
   // Grid 品牌数据
   private brandIcons: string[] = ['奥迪', '宝马', '奔驰', '特斯拉', '丰田', '本田', '大众', '比亚迪'];
 
+  // 作用：页面创建时加载首页车辆数据
   aboutToAppear() {
     this.loadRealCars();
   }
 
+  // 作用：调用 HttpUtil.fetchHomeCars() 拉取车辆列表，失败时保留空列表
   private async loadRealCars() {
     try {
       let realCars = await fetchHomeCars();
@@ -40,14 +46,17 @@ struct Index {
     }
   }
 
+  // 作用：跳转到 CarFilter 车辆筛选页，无参数
   private goFilter() {
     router.pushUrl({ url: 'pages/CarFilter' });
   }
 
+  // 作用：跳转到 OrderConfirm 确认订单页，传 carId 参数
   private goConfirm(carId: string) {
     router.pushUrl({ url: 'pages/OrderConfirm', params: { carId: carId } });
   }
 
+  // 作用：底部 Tab 切换，非首页时用 replaceUrl 跳转到对应页面
   private switchTab(index: number) {
     this.currentTab = index;
     const pages: string[] = ['pages/Index', 'pages/MyOrders', 'pages/AIChat', 'pages/PersonalCenter'];
@@ -58,6 +67,7 @@ struct Index {
 
   build() {
     Column() {
+      // ===== 顶部导航栏：右侧「筛选」按钮 =====
       NavBar({
         title: '选择车辆',
         showBack: false,
@@ -69,28 +79,17 @@ struct Index {
       // ===== 外层 Scroll：NavBar 和 TabBar 固定，中间所有内容一起滚 =====
       Scroll() {
         Column() {
-          // Swiper Banner
-          Swiper() {
-            ForEach(this.banners, (text: string, idx: number) => {
-              Row() {
-                Text(text).fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Medium)
-              }
-              .width('100%').height(80)
-              .linearGradient({ angle: 180, colors: [['#FF6B00', 0], ['#FF8F3D', 1]] })
-              .borderRadius(10).justifyContent(FlexAlign.Center)
-            }, (text: string, idx: number) => idx.toString())
-          }
-          .width('100%').height(80).margin({ left: 16, right: 16, top: 8, bottom: 8 })
-          .autoPlay(true).interval(3000).indicator(true)
+          // ===== 轮播 Banner：SwiperBanner 组件内部使用 Swiper =====
+          SwiperBanner()
 
-          // 门店信息行
+          // ===== 门店信息行 =====
           Row() {
             Text('📍 ' + this.storeName.substring(0, 12)).fontSize(13).fontColor($r('app.color.text_primary')).layoutWeight(1)
             Text('›').fontSize(16).fontColor($r('app.color.text_secondary')).margin({ left: 4 })
           }
           .width('100%').padding({ left: 16, right: 16, top: 6, bottom: 6 })
 
-          // 搜索框
+          // ===== 搜索框 =====
           Row() {
             Text('🔍').fontSize(14).margin({ right: 6 })
             TextInput({ placeholder: '搜索品牌或车型', text: this.searchText })
@@ -101,7 +100,7 @@ struct Index {
           .backgroundColor(Color.White).borderRadius(18)
           .margin({ left: 16, right: 16, bottom: 10 })
 
-          // Grid 品牌网格
+          // ===== 品牌宫格：Grid + GridItem + ForEach =====
           Grid() {
             ForEach(this.brandIcons, (brand: string) => {
               GridItem() {
@@ -118,7 +117,7 @@ struct Index {
           .width('100%').height(100)
           .padding({ left: 16, right: 16 }).backgroundColor($r('app.color.bg_page'))
 
-          // 热门车型标题
+          // ===== 热门车型标题与数量统计 =====
           Row() {
             Text('🔥 热门车型').fontSize(15).fontColor($r('app.color.text_primary')).fontWeight(FontWeight.Medium)
             Blank()
@@ -126,20 +125,22 @@ struct Index {
           }
           .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 8 })
 
-          // 车辆卡片列表
+          // ===== 车辆列表：ForEach 循环渲染 CarCard，数据来自 this.carList =====
           ForEach(this.carList, (car: CarInfo) => {
             this.CarCard(car)
           }, (car: CarInfo) => car.id)
         }
         .width('100%').padding({ bottom: 16 })
       }
-      .layoutWeight(1).scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
+      .layoutWeight(1).scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring).align(Alignment.Top)
 
+      // ===== 底部 TabBar =====
       TabBar({ currentIndex: this.currentTab, onTabChange: (i: number): void => this.switchTab(i) })
     }
     .width('100%').height('100%').backgroundColor($r('app.color.bg_page'))
   }
 
+  // 作用：车辆卡片，展示车辆图片、品牌车型、配置、价格与「立即预订」按钮
   @Builder
   CarCard(car: CarInfo) {
     Column() {
@@ -150,6 +151,7 @@ struct Index {
         .objectFit(ImageFit.Cover)
         .borderRadius({ topLeft: 12, topRight: 12 })
 
+      // ===== 车型与配置信息 =====
       Column() {
         Row() {
           Text(car.brand)
@@ -198,6 +200,7 @@ struct Index {
         }
         .margin({ top: 8 })
 
+        // ===== 价格与「立即预订」按钮 =====
         Row() {
           Row() {
             Text('¥')

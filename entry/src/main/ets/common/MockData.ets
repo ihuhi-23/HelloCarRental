@@ -1,10 +1,11 @@
 import { CarInfo, StoreInfo, OrderInfo, OrderStatus, Coupon, UserInfo, PaymentMethod, ChatMessage, ViolationRecord } from './Interfaces';
 
 /**
- * Mock 数据 - 全部使用本地静态数据，不需要后端
+ * Mock 兜底数据（不是主数据源）
+ * 仅在 HttpUtil 请求失败时回退使用；后端可用时页面展示的是真实接口数据
  */
 
-// 车辆列表 - 首页展示
+// 车辆列表：fetchHomeCars 失败时兜底（首页展示）
 export const mockCarList: CarInfo[] = [
   {
     id: 'car001',
@@ -101,7 +102,7 @@ export const mockCarList: CarInfo[] = [
   }
 ];
 
-// 门店列表
+// 门店列表：fetchStores 失败时兜底（门店查询、确认订单、还车确认）
 export const mockStoreList: StoreInfo[] = [
   {
     id: 'store001',
@@ -141,7 +142,7 @@ export const mockStoreList: StoreInfo[] = [
   }
 ];
 
-// 订单列表
+// 订单列表：fetchOrders / fetchOrderDetail 失败时兜底
 export const mockOrderList: OrderInfo[] = [
   {
     id: 'order000',
@@ -206,14 +207,14 @@ export const mockOrderList: OrderInfo[] = [
   }
 ];
 
-// 优惠券列表
+// 优惠券列表：fetchCoupons 失败时兜底（确认订单）
 export const mockCouponList: Coupon[] = [
   { id: 'cp001', name: '新用户立减券', discount: 50, threshold: 300, expireDate: '2026-12-31', used: false },
   { id: 'cp002', name: '周末出行优惠', discount: 100, threshold: 500, expireDate: '2026-11-30', used: false },
   { id: 'cp003', name: '长租专享券', discount: 200, threshold: 1000, expireDate: '2026-12-15', used: false }
 ];
 
-// 用户信息
+// 用户信息：fetchUser 失败时兜底（个人中心）
 export const mockUserInfo: UserInfo = {
   id: 'user001',
   name: '张三',
@@ -225,14 +226,14 @@ export const mockUserInfo: UserInfo = {
   verified: true
 };
 
-// 支付方式
+// 支付方式：收银台页直接使用的静态列表
 export const mockPaymentMethods: PaymentMethod[] = [
   { id: 'pay001', name: '招商银行', type: 'bankcard', cardNo: '尾号 6688', isDefault: true },
   { id: 'pay002', name: '微信支付', type: 'wechat', isDefault: false },
   { id: 'pay003', name: '支付宝', type: 'alipay', isDefault: false }
 ];
 
-// AI 客服对话
+// AI 客服示例对话：当前无页面引用（AIChat 页使用自建 ChatMsg）
 export const mockChatMessages: ChatMessage[] = [
   { id: 'msg001', content: '您好！我是 Hello 租车智能小助手，很高兴为您服务😊', isUser: false, time: '09:00' },
   { id: 'msg002', content: '我想了解一下取车流程', isUser: true, time: '09:01' },
@@ -241,7 +242,7 @@ export const mockChatMessages: ChatMessage[] = [
   { id: 'msg005', content: '提前取车需要联系门店工作人员确认哦，不同门店政策可能不同。建议您提前拨打门店电话咨询～', isUser: false, time: '09:02' }
 ];
 
-// 违章记录
+// 违章记录：违章查询页直接使用的静态列表（后端暂无该接口）
 export const mockViolationList: ViolationRecord[] = [
   { id: 'v001', time: '2026-08-15 14:30', location: '浦东新区世纪大道', reason: '违反禁止标线指示', points: 3, fine: 200, status: '待处理' },
   { id: 'v002', time: '2026-07-20 09:15', location: '徐汇区沪闵高架', reason: '超速10%-20%', points: 3, fine: 150, status: '已处理' },

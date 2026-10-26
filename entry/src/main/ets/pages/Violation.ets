@@ -5,8 +5,12 @@ import { mockViolationList } from '../common/MockData';
 import { ViolationRecord } from '../common/Interfaces';
 
 /**
- * 页面 18：违章查询
- * 注意：后端暂无违章查询 API，当前使用 Mock 数据（mockViolationList）
+ * 页面：违章查询
+ * 分工：成员四 · 简单页面
+ * 入口：用车中「违章查询」/ 个人中心「违章查询」
+ * 功能：车辆号牌与查询时间、违章统计、违章明细
+ * 容器：SwiperBanner（内部 Swiper 轮播）、Scroll（页面内容）
+ * 说明：数据来自 MockData.mockViolationList，暂无后端接口
  */
 @Entry
 @Component
@@ -15,10 +19,13 @@ struct Violation {
     Column() {
       NavBar({ title: '违章查询', onBack: (): void => { router.back(); }, rightText: '', onRightClick: (): void => {} })
 
+      // 轮播横幅：SwiperBanner（内部为 Swiper）
       SwiperBanner()
 
+      // ===== 页面内容：Scroll 纵向滚动 =====
       Scroll() {
         Column() {
+          // ===== 车辆与查询时间 =====
           Column() {
             Row() {
               Text('车辆号牌').fontSize($r('app.float.font_size_caption')).fontColor($r('app.color.text_secondary'))
@@ -33,6 +40,7 @@ struct Violation {
           }
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+          // ===== 违章统计汇总 =====
           Row() {
             Column() {
               Text(mockViolationList.length.toString()).fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
@@ -51,9 +59,11 @@ struct Violation {
           }
           .width('100%').padding(16).backgroundColor(Color.White).borderRadius(12).margin({ top: 12 })
 
+          // ===== 违章详情 =====
           Text('违章详情').fontSize($r('app.float.font_size_body')).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
             .margin({ left: 4, top: 16, bottom: 8 })
 
+          // 违章列表：ForEach 渲染 mockViolationList（本页未使用 List）
           ForEach(mockViolationList, (v: ViolationRecord) => {
             Column() {
               Row() {
@@ -75,7 +85,7 @@ struct Violation {
         }
         .padding(16)
       }
-      .layoutWeight(1).scrollBar(BarState.Off)
+      .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
     }
     .width('100%').height('100%').backgroundColor($r('app.color.bg_page'))
   }

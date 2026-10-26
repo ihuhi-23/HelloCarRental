@@ -189,6 +189,40 @@
   ],
   "orders": [
     {
+      "id": "order1792858988389",
+      "orderNo": "HC1792858988389",
+      "carName": "宝马 3系 325Li",
+      "carImage": "https://www.bmw.com.cn/content/dam/bmw/marketCN/common/all-models/sales_promotion/20241231/4series_coupe_inspire_kv.jpg/jcr:content/renditions/cq5dam.resized.img.1680.large.time1735526344048.jpg",
+      "pickupStore": "南宁学院",
+      "returnStore": "陆家嘴金融中心店",
+      "pickupTime": "2026-10-20 10:00",
+      "returnTime": "2026-10-23 10:00",
+      "days": 3,
+      "totalPrice": 894,
+      "discount": 50,
+      "insurance": 30,
+      "status": "CONFIRMED",
+      "createTime": "2026/10/25 00:23:08",
+      "updateTime": "2026/10/25 00:23:11"
+    },
+    {
+      "id": "order1792857836343",
+      "orderNo": "HC1792857836344",
+      "carName": "别克GL8 ES 豪华型",
+      "carImage": "https://img.pcauto.com.cn/images/upload/upc/tx/auto5/2211/07/c0/340656290_1667785907238_1024.jpg",
+      "pickupStore": "浦东机场 T2 航站楼店",
+      "returnStore": "浦东机场 T2 航站楼店",
+      "pickupTime": "2026-10-20 10:00",
+      "returnTime": "2026-10-23 10:00",
+      "days": 3,
+      "totalPrice": 1164,
+      "discount": 0,
+      "insurance": 30,
+      "status": "COMPLETED",
+      "createTime": "2026/10/25 00:03:56",
+      "updateTime": "2026/10/25 00:05:01"
+    },
+    {
       "id": "order000",
       "orderNo": "HC2026101900000",
       "carName": "宝马 3系 325Li",
@@ -215,10 +249,11 @@
       "returnTime": "2026-10-23 10:00",
       "days": 3,
       "totalPrice": 894,
-      "status": "IN_USE",
+      "status": "COMPLETED",
       "createTime": "2026-10-15 14:30",
       "discount": 50,
-      "insurance": 30
+      "insurance": 30,
+      "updateTime": "2026/10/25 00:03:31"
     },
     {
       "id": "order002",
@@ -250,16 +285,6 @@
       "createTime": "2026-10-05 10:15"
     }
   ],
-  "user": {
-    "id": "user001",
-    "name": "张三",
-    "phone": "138****8888",
-    "avatar": "👤",
-    "memberLevel": "黄金会员",
-    "memberExpire": "2027-12-31",
-    "points": 2680,
-    "verified": true
-  },
   "banners": [
     {
       "id": "banner001",
@@ -326,6 +351,120 @@
       "threshold": 1000,
       "expireDate": "2026-12-15",
       "used": false
+    }
+  ],
+  "users": [
+    {
+      "id": "user001",
+      "name": "张三",
+      "phone": "13800138000",
+      "password": "03b411f13a475ae2fa26a14538aadd3a:998c90ce03d5bf74aeb4a03600b7517564068e54f8d1169c30510f998262a598096f017217b42701a5c4dfb1a10e7b181bef9eae44db5b720ad24805b2aeb1b3",
+      "avatar": "",
+      "memberLevel": "黄金会员",
+      "memberExpire": "2027-12-31",
+      "points": 2680,
+      "verified": true,
+      "createdAt": "2026-10-24T15:21:04.640Z",
+      "lastLoginAt": "2026-10-24T16:23:28.894Z"
+    },
+    {
+      "id": "user002",
+      "name": "李四",
+      "phone": "13900139001",
+      "password": "f5f5822f00d2bcb573f8f168ce14379a:ce2435c9d375afddd1d6bc2facc75ba602aa1c010142db5b8fed518a16a75d74c4678fd6e4e21645f17d7a8992df6c684c8fa74b66101ebf92dc3a32b5d108d8",
+      "avatar": "",
+      "memberLevel": "白银会员",
+      "memberExpire": "2026-12-31",
+      "points": 580,
+      "verified": true,
+      "createdAt": "2026-10-24T15:21:04.685Z"
+    },
+    {
+      "id": "user003",
+      "name": "王五",
+      "phone": "13700137002",
+      "password": "ee056438b0fe402280fe1f58f4a9b1dd:4a4407513504ca924fc4ea6eabf8841552450a671e6e0a1d37aa1c8f6cdee60a29ffe575382674cda141370499de0103dcf3ff8b1f962c897de2c274fb68f1ae",
+      "avatar": "",
+      "memberLevel": "钻石会员",
+      "memberExpire": "2027-06-30",
+      "points": 5200,
+      "verified": true,
+      "createdAt": "2026-10-24T15:21:04.733Z"
+    },
+    {
+      "id": "user004",
+      "name": "赵六",
+      "phone": "13600136003",
+      "password": "d0eb9dd0e19e895fdeab68cb03ccc231:9ab30bf3ab13f4515820335c410c5d09df19a50c4c037f17bc57b213a3c4804ccf409043f93211d7d7ca52b46ab6121cc20d2d19d1a4a1efe15eaacb846a73eb",
+      "avatar": "",
+      "memberLevel": "普通会员",
+      "memberExpire": "",
+      "points": 120,
+      "verified": false,
+      "createdAt": "2026-10-24T15:21:04.778Z"
+    },
+    {
+      "id": "user005",
+      "name": "孙七",
+      "phone": "13500135004",
+      "password": "b132beeb4e8dc4bdef52ce6d25af625d:0daa07e95ab9b824956b2164d69cbabb3b270d1cd11347de1f4e30247b7076511066dd77b1a25269abe93d80d586592121c95f878e17878d61ee7ed591a2e2a8",
+      "avatar": "",
+      "memberLevel": "黄金会员",
+      "memberExpire": "2026-11-30",
+      "points": 1580,
+      "verified": true,
+      "createdAt": "2026-10-24T15:21:04.818Z"
+    },
+    {
+      "id": "user006",
+      "name": "用户3388",
+      "phone": "13838383388",
+      "password": "d24df49bae04ca8a69ea964145f8ce61:b8ffc5939a1d42ca2026d04f67493062b297ac3e9c86a761f7809a9a0ce70ef77eac8ba3c792b0cc98eb9a3beb4dd3794c8df5228eec0748058342a2667d3d6e",
+      "avatar": "/uploads/avatar_user006_1792856318728.jpg",
+      "memberLevel": "普通会员",
+      "memberExpire": "",
+      "points": 0,
+      "verified": false,
+      "createdAt": "2026-10-24T15:35:41.668Z",
+      "lastLoginAt": "2026-10-24T15:36:40.216Z"
+    }
+  ],
+  "sessions": [
+    {
+      "token": "4506670d2b4769afceef274f8bf7b3affed64b87ca4fb470",
+      "userId": "user006",
+      "createdAt": 1792856141668,
+      "expiresAt": 1795448141668
+    },
+    {
+      "token": "41bea5b921fa1b60bdf4eff300a49ab52c5302dc9d57a18d",
+      "userId": "user006",
+      "createdAt": 1792856200216,
+      "expiresAt": 1795448200216
+    },
+    {
+      "token": "c7f7db78aac74593a9aa9b9e11358f4aebe76099feffde08",
+      "userId": "user001",
+      "createdAt": 1792856654230,
+      "expiresAt": 1795448654230
+    },
+    {
+      "token": "bf34f2ca29e5332569ace24cd5f8c93eb71cd24588db9359",
+      "userId": "user001",
+      "createdAt": 1792857888210,
+      "expiresAt": 1795449888210
+    },
+    {
+      "token": "7bc430ca6a4f3c20b4d996ff9f84d703a805c74f00d531bf",
+      "userId": "user001",
+      "createdAt": 1792858293203,
+      "expiresAt": 1795450293203
+    },
+    {
+      "token": "35d5dc6d73574459267f91b3649b81bb1eb093a28ab3571b",
+      "userId": "user001",
+      "createdAt": 1792859008894,
+      "expiresAt": 1795451008894
     }
   ]
 }

@@ -1,8 +1,9 @@
 /**
- * 数据模型接口定义
+ * 全局数据模型定义
+ * 所有 interface 与后端接口返回字段一一对应，供各页面和 HttpUtil 共用
  */
 
-// 车辆信息
+// 车辆信息：首页、确认订单页；HttpUtil 车辆接口返回
 export interface CarInfo {
   id: string;
   name: string;           // 车型名称
@@ -20,7 +21,7 @@ export interface CarInfo {
   orderCount?: number;    // 预订次数
 }
 
-// 门店信息
+// 门店信息：门店查询、确认订单、还车确认页
 export interface StoreInfo {
   id: string;
   name: string;
@@ -34,7 +35,7 @@ export interface StoreInfo {
   hasPickup: boolean;     // 是否支持接送
 }
 
-// 订单状态枚举
+// 订单状态枚举：订单列表/详情/用车中页按状态展示；枚举值即中文文案
 export enum OrderStatus {
   PENDING = '待支付',
   CONFIRMED = '已确认',
@@ -45,7 +46,7 @@ export enum OrderStatus {
   CANCELLED = '已取消'
 }
 
-// 订单信息
+// 订单信息：我的订单、订单详情、支付、取车凭证、还车确认、费用结算页
 export interface OrderInfo {
   id: string;
   orderNo: string;
@@ -63,7 +64,7 @@ export interface OrderInfo {
   insurance?: number;
 }
 
-// 优惠券
+// 优惠券：确认订单页选择优惠券
 export interface Coupon {
   id: string;
   name: string;
@@ -73,7 +74,7 @@ export interface Coupon {
   used: boolean;
 }
 
-// 用户信息
+// 用户信息：个人中心页；HttpUtil 登录与用户接口
 export interface UserInfo {
   id: string;
   name: string;
@@ -85,7 +86,7 @@ export interface UserInfo {
   verified: boolean;      // 是否实名认证
 }
 
-// 支付方式
+// 支付方式：收银台页（Payment.ets），MockData 提供静态列表
 export interface PaymentMethod {
   id: string;
   name: string;
@@ -94,7 +95,7 @@ export interface PaymentMethod {
   isDefault: boolean;
 }
 
-// 消息气泡（AI客服）
+// 消息气泡（AI客服）：当前仅 MockData.mockChatMessages 使用，AIChat 页用自建 ChatMsg
 export interface ChatMessage {
   id: string;
   content: string;
@@ -102,7 +103,7 @@ export interface ChatMessage {
   time: string;
 }
 
-// 违章记录
+// 违章记录：违章查询页（Violation.ets），数据来自 MockData
 export interface ViolationRecord {
   id: string;
   time: string;
@@ -113,7 +114,7 @@ export interface ViolationRecord {
   status: string;
 }
 
-// Banner 轮播图
+// Banner 轮播图：SwiperBanner 组件；HttpUtil.fetchBanners 返回
 export interface BannerInfo {
   id: string;
   imageUrl: string;
@@ -121,4 +122,39 @@ export interface BannerInfo {
   link: string;
   sort: number;
   enabled: boolean;
+}
+
+// 详情类页面的信息行：订单详情、用车中、取车凭证、还车确认、支付成功页 List 渲染
+export interface InfoRow {
+  label: string;
+  value: string;
+}
+
+// 车辆筛选条件：筛选页（CarFilter.ets）
+export interface FilterCondition {
+  brand: string;
+  priceRange: string;
+  carType: string;
+  sortBy: string;
+}
+
+// 登录表单：登录页（Login.ets）
+export interface LoginForm {
+  phone: string;
+  code: string;
+  password: string;
+}
+
+// 注册表单：注册页（Register.ets）
+export interface RegisterForm {
+  phone: string;
+  code: string;
+  password: string;
+  confirmPassword: string;
+}
+
+// 实名认证表单：实名认证页（VerifyAuth.ets）
+export interface VerifyAuthForm {
+  realName: string;
+  idCard: string;
 }
