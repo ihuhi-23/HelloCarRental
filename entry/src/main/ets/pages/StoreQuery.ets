@@ -13,7 +13,9 @@ import webview from '@ohos.web.webview';
  * 关键状态：stores、filteredStores、isMapMode、searchText、searchByCity、mapUrl
  * 关键方法：loadStores() 调用 HttpUtil.fetchStores()、filterStores()、searchCity()、toggleMode()
  */
-const BASE = 'https://car.ihuhi.xyz';
+// 地图页地址：IP 直连，避免部分网络（校园网）DNS 拦截域名导致地图空白
+const BASE = 'http://47.107.80.195:8081';
+// 备用：HTTPS 域名 const BASE = 'https://car.ihuhi.xyz';
 
 @Entry
 @Component

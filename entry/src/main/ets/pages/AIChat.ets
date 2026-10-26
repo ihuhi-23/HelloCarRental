@@ -30,7 +30,7 @@ interface MdSeg {
   isDivider: boolean;    // --- 分隔线
 }
 
-const BASE_URL = 'https://car.ihuhi.xyz';
+const BASE_URL = 'http://47.107.80.195:8081';
 const STORE_NAME = 'ai_chat_store';
 const KEY_HISTORY = 'ai_history';
 

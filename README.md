@@ -59,13 +59,18 @@ HelloCarRental/
 客户端接口地址在 [entry/src/main/ets/common/HttpUtil.ets](entry/src/main/ets/common/HttpUtil.ets)：
 
 ```ts
-export const BASE_URL = 'https://car.ihuhi.xyz';
+export const BASE_URL = 'http://47.107.80.195:8081';
 ```
 
 已指向线上服务器，编译后即可直接获取真实数据（车辆、门店、订单等）。
 
-- **App 地址**：https://car.ihuhi.xyz
-- **管理后台**：https://car.ihuhi.xyz/admin/
+**为什么用 IP 而不是域名**：部分校园网/公司网络的 DNS 会把未备案域名解析成 `127.0.0.1`（例如 `car.ihuhi.xyz`），导致所有请求失败。IP 直连不经过 DNS，任何网络都能用。走域名 + HTTPS 的备用写法也保留在 `HttpUtil.ets` 注释里，按需切换。
+
+| 访问方式 | 地址 | 说明 |
+|----------|------|------|
+| IP 直连（默认） | http://47.107.80.195:8081 | 不依赖 DNS，推荐 |
+| 域名 + HTTPS | https://car.ihuhi.xyz | 需要能正常解析该域名 |
+| 管理后台 | https://car.ihuhi.xyz/admin/ 或 http://47.107.80.195:8081/admin/ | 二选一 |
 
 > 演示账号见后台或 `backend/data.json`，也可在 App 内直接注册。
 

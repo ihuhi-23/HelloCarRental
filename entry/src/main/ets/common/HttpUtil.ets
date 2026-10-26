@@ -8,8 +8,11 @@ import { CarInfo, StoreInfo, OrderInfo, OrderStatus, Coupon, UserInfo, BannerInf
 import { mockCarList, mockStoreList, mockOrderList, mockCouponList, mockUserInfo } from './MockData';
 
 // ===== 线上后端地址（Node.js Express，部署在阿里云 ECS）=====
-// 本地开发时改回：http://10.232.0.1:3000
-export const BASE_URL = 'https://car.ihuhi.xyz';
+// 主用：IP 直连（不经过 DNS 解析，校园网 DNS 拦截域名时仍可用）
+export const BASE_URL = 'http://47.107.80.195:8081';
+// 备用：走域名 + HTTPS（部分网络可能拦截该域名解析，届时可临时切回此行）
+// export const BASE_URL = 'https://car.ihuhi.xyz';
+// 本地开发：http://10.232.0.1:3000
 
 // ===== 图片 URL 工具 =====
 
